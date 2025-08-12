@@ -10,7 +10,9 @@ import (
 	"github.com/goplus/llpkgstore/config"
 	"github.com/goplus/llpkgstore/internal/actions"
 	"github.com/goplus/llpkgstore/internal/actions/env"
+	"github.com/goplus/llpkgstore/internal/actions/generator"
 	"github.com/goplus/llpkgstore/internal/actions/generator/llcppg"
+	"github.com/goplus/llpkgstore/internal/actions/generator/llpyg"
 	"github.com/spf13/cobra"
 )
 
@@ -36,15 +38,22 @@ func runLLCppgVerificationWithDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	generator := llcppg.New(dir, cfg.Upstream.Package.Name, dir)
+
+	// Choose generator based on package type
+	var gen generator.Generator
+	if cfg.Type == "python" {
+		gen = llpyg.New(dir, cfg.Upstream.Package.Name, dir)
+	} else {
+		gen = llcppg.New(dir, cfg.Upstream.Package.Name, dir)
+	}
 
 	generated := filepath.Join(dir, ".generated")
 	os.Mkdir(generated, 0777)
 
-	if err := generator.Generate(generated); err != nil {
+	if err := gen.Generate(generated); err != nil {
 		return err
 	}
-	if err := generator.Check(generated); err != nil {
+	if err := gen.Check(generated); err != nil {
 		return err
 	}
 	// TODO(ghl): upload generated result to artifact for debugging.

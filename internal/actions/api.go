@@ -590,9 +590,9 @@ func (d *DefaultClient) CheckPR() ([]string, error) {
 		return nil, fmt.Errorf("actions: too many to-be-converted directory")
 	}
 
-	// 2. Check config files(llpkg.cfg and llcppg.cfg)
+	// 2. Check config files(llpkg.cfg and llcppg.cfg/llpyg.cfg)
 	if len(pathMap) == 0 {
-		return nil, fmt.Errorf("actions: no valid config files, llpkg.cfg and llcppg.cfg must exist")
+		return nil, fmt.Errorf("actions: no valid config files, llpkg.cfg and llcppg.cfg/llpyg.cfg must exist")
 	}
 
 	return allPaths, nil

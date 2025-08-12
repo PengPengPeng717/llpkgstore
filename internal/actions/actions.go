@@ -122,7 +122,11 @@ func isValidLLPkg(files []os.DirEntry) bool {
 	}
 	_, hasLLPkg := fileMap["llpkg.cfg"]
 	_, hasLLCppg := fileMap["llcppg.cfg"]
-	return hasLLCppg && hasLLPkg
+	_, hasLLPyg := fileMap["llpyg.cfg"]
+
+	// For C/C++ packages: need llpkg.cfg and llcppg.cfg
+	// For Python packages: need llpkg.cfg and llpyg.cfg
+	return hasLLPkg && (hasLLCppg || hasLLPyg)
 }
 
 // checkLegacyVersion validates versioning strategy for legacy package submissions
@@ -213,33 +217,42 @@ func BuildBinaryZip(uc *upstream.Upstream) (zipFileName, zipFilePath string, err
 		return
 	}
 
-	pkgConfigDir := filepath.Join(tempDir, "lib", "pkgconfig")
-	// clear exist .pc
-	err = os.RemoveAll(pkgConfigDir)
-	if err != nil {
-		err = wrapActionError(err)
-		return
-	}
-
-	err = os.Mkdir(pkgConfigDir, 0777)
-	if err != nil {
-		err = wrapActionError(err)
-		return
-	}
-
-	for _, pcName := range deps {
-		pcFile := filepath.Join(tempDir, pcName+".pc")
-		// generate pc template to lib/pkgconfig
-		err = pc.GenerateTemplateFromPC(pcFile, pkgConfigDir, deps)
+	// Check if this is a Python package by checking the installer name
+	if uc.Installer.Name() == "pip" {
+		// For Python packages, we don't need pkg-config files
+		// Just clean up temporary files
+		file.RemovePattern(filepath.Join(tempDir, "*.pyc"))
+		file.RemovePattern(filepath.Join(tempDir, "__pycache__"))
+	} else {
+		// For C/C++ packages, handle pkg-config files
+		pkgConfigDir := filepath.Join(tempDir, "lib", "pkgconfig")
+		// clear exist .pc
+		err = os.RemoveAll(pkgConfigDir)
 		if err != nil {
 			err = wrapActionError(err)
 			return
 		}
-	}
 
-	// okay, safe to remove old pc
-	file.RemovePattern(filepath.Join(tempDir, "*.pc"))
-	file.RemovePattern(filepath.Join(tempDir, "*.sh"))
+		err = os.Mkdir(pkgConfigDir, 0777)
+		if err != nil {
+			err = wrapActionError(err)
+			return
+		}
+
+		for _, pcName := range deps {
+			pcFile := filepath.Join(tempDir, pcName+".pc")
+			// generate pc template to lib/pkgconfig
+			err = pc.GenerateTemplateFromPC(pcFile, pkgConfigDir, deps)
+			if err != nil {
+				err = wrapActionError(err)
+				return
+			}
+		}
+
+		// okay, safe to remove old pc
+		file.RemovePattern(filepath.Join(tempDir, "*.pc"))
+		file.RemovePattern(filepath.Join(tempDir, "*.sh"))
+	}
 
 	zipFileName = binaryZip(uc.Pkg.Name)
 	zipFilePath, err = filepath.Abs(zipFileName)
