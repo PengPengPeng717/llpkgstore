@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/goplus/llpkgstore/upstream"
+	"github.com/PengPengPeng717/llpkgstore/upstream"
 )
 
 var (

@@ -3,7 +3,7 @@ package internal
 import (
 	"fmt"
 
-	"github.com/goplus/llpkgstore/internal/actions"
+	"github.com/PengPengPeng717/llpkgstore/internal/actions"
 	"github.com/spf13/cobra"
 )
 

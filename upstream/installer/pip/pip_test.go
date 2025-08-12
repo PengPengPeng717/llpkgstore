@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/goplus/llpkgstore/upstream"
+	"github.com/PengPengPeng717/llpkgstore/upstream"
 )
 
 func TestPipInstaller(t *testing.T) {

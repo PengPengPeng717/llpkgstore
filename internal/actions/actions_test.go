@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/goplus/llpkgstore/config"
+	"github.com/PengPengPeng717/llpkgstore/config"
 )
 
 func TestBuildBinaryZip(t *testing.T) {

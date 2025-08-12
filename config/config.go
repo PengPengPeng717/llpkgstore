@@ -3,9 +3,9 @@ package config
 import (
 	"errors"
 
-	"github.com/goplus/llpkgstore/upstream"
-	"github.com/goplus/llpkgstore/upstream/installer/conan"
-	"github.com/goplus/llpkgstore/upstream/installer/pip"
+	"github.com/PengPengPeng717/llpkgstore/upstream"
+	"github.com/PengPengPeng717/llpkgstore/upstream/installer/conan"
+	"github.com/PengPengPeng717/llpkgstore/upstream/installer/pip"
 )
 
 var ValidInstallers = []string{"conan", "pip"}

@@ -13,12 +13,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/goplus/llpkgstore/config"
-	"github.com/goplus/llpkgstore/internal/actions/env"
-	"github.com/goplus/llpkgstore/internal/actions/versions"
-	"github.com/goplus/llpkgstore/internal/file"
-	"github.com/goplus/llpkgstore/internal/pc"
-	"github.com/goplus/llpkgstore/upstream"
+	"github.com/PengPengPeng717/llpkgstore/config"
+	"github.com/PengPengPeng717/llpkgstore/internal/actions/env"
+	"github.com/PengPengPeng717/llpkgstore/internal/actions/versions"
+	"github.com/PengPengPeng717/llpkgstore/internal/file"
+	"github.com/PengPengPeng717/llpkgstore/internal/pc"
+	"github.com/PengPengPeng717/llpkgstore/upstream"
 	"golang.org/x/mod/semver"
 )
 
@@ -184,7 +184,7 @@ func checkLegacyVersion(ver *versions.Versions, cfg config.LLPkgConfig, mappedVe
 	if semver.MajorMinor(previousVersion) == semver.MajorMinor(currentVersion) &&
 		semver.Compare(previousVersion, currentVersion) > 0 {
 		return fmt.Errorf(`actions: cannot submit a historical legacy version.
-	for more details: https://github.com/goplus/llpkgstore/blob/main/docs/llpkgstore.md#branch-maintenance-strategy`)
+	for more details: https://github.com/PengPengPeng717/llpkgstore/blob/main/docs/llpkgstore.md#branch-maintenance-strategy`)
 	}
 
 	// case5: we're the latest patch version for current major and minor, check the mapped version

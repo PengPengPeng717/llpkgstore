@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/google/go-github/v69/github"
-	"github.com/goplus/llpkgstore/config"
-	"github.com/goplus/llpkgstore/internal/actions/env"
-	"github.com/goplus/llpkgstore/internal/actions/versions"
+	"github.com/PengPengPeng717/llpkgstore/config"
+	"github.com/PengPengPeng717/llpkgstore/internal/actions/env"
+	"github.com/PengPengPeng717/llpkgstore/internal/actions/versions"
 	"golang.org/x/sync/errgroup"
 )
 

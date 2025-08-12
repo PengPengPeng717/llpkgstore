@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/goplus/llpkgstore/internal/actions/generator"
-	"github.com/goplus/llpkgstore/internal/file"
-	"github.com/goplus/llpkgstore/internal/hashutils"
-	"github.com/goplus/llpkgstore/internal/pc"
+	"github.com/PengPengPeng717/llpkgstore/internal/actions/generator"
+	"github.com/PengPengPeng717/llpkgstore/internal/file"
+	"github.com/PengPengPeng717/llpkgstore/internal/hashutils"
+	"github.com/PengPengPeng717/llpkgstore/internal/pc"
 )
 
 var (
@@ -47,7 +47,7 @@ func canHash(fileName string) bool {
 // lockGoVersion locks current Go version to `llcppgGoVersion` via GOTOOLCHAIN
 func lockGoVersion(cmd *exec.Cmd, pcPath string) {
 	// don't change global settings, use temporary environment.
-	// see issue: https://github.com/goplus/llpkgstore/issues/18
+	// see issue: https://github.com/PengPengPeng717/llpkgstore/issues/18
 	pc.SetPath(cmd, pcPath)
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GOTOOLCHAIN=go%s", llcppgGoVersion))
 }
