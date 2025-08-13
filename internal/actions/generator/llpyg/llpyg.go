@@ -45,7 +45,17 @@ func canHash(fileName string) bool {
 
 // lockGoVersion locks current Go version to `llpygGoVersion` via GOTOOLCHAIN
 func lockGoVersion(cmd *exec.Cmd, pyPath string) {
-	// Set Python path for llpyg
+	// Set Python path for llpyg - use system Python path if pyPath is empty
+	if pyPath == "" {
+		// Try to find Python site-packages directory
+		output, err := exec.Command("python3", "-c", "import site; print(site.getsitepackages()[0])").Output()
+		if err == nil {
+			pyPath = strings.TrimSpace(string(output))
+		} else {
+			// Fallback to common paths
+			pyPath = "/usr/local/lib/python3.12/site-packages:/usr/lib/python3.12/site-packages"
+		}
+	}
 	cmd.Env = append(cmd.Env, fmt.Sprintf("PYTHONPATH=%s", pyPath))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("GOTOOLCHAIN=go%s", llpygGoVersion))
 }
@@ -73,9 +83,9 @@ func New(dir, packageName, pyDir string) generator.Generator {
 }
 
 // normalizeModulePath returns a normalized module path like
-// math => github.com/goplus/llpkg/math
+// For llpyg, we need the Python module name, not the Go module path
 func (l *llpygGenerator) normalizeModulePath() string {
-	return goplusRepo + l.packageName
+	return l.packageName
 }
 
 func (l *llpygGenerator) findSymbJSON() string {
@@ -121,12 +131,25 @@ func (l *llpygGenerator) Generate(toDir string) error {
 		return errors.Join(ErrLLPygGenerate, err)
 	}
 
-	// Execute llpyg command
-	cmd := exec.Command("llpyg", "-mod", l.normalizeModulePath(), llpygConfigFile)
+	// Create output file for llpyg
+	outputFile := filepath.Join(path, l.packageName+".go")
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return errors.Join(ErrLLPygGenerate, err)
+	}
+	defer file.Close()
+
+	// Execute llpyg command and redirect output to file
+	cmd := exec.Command("llpyg", l.normalizeModulePath())
 	cmd.Dir = path
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = file
 	cmd.Stderr = os.Stderr
-	lockGoVersion(cmd, l.pyDir)
+
+	// Set environment variables for llpyg
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("PYTHONPATH=%s", "/usr/local/lib/python3.12/site-packages:/usr/lib/python3.12/site-packages"),
+		fmt.Sprintf("GOTOOLCHAIN=go1.24.5"),
+	)
 
 	// llpyg may exit with an error, which may be caused by Stderr.
 	// To avoid that case, we have to check its exit code.
@@ -134,21 +157,16 @@ func (l *llpygGenerator) Generate(toDir string) error {
 		return errors.Join(ErrLLPygGenerate, err)
 	}
 
-	// check output again
-	generatedPath := filepath.Join(path, l.packageName)
-	if _, err := os.Stat(generatedPath); os.IsNotExist(err) {
-		return errors.Join(ErrLLPygCheck, errors.New("generate fail"))
-	}
-
-	// copy out the generated result
-	// be careful: llpyg result MUST not override existed file,
-	// otherwise, checking is meaningless.
-	err = file.CopyFS(path, os.DirFS(generatedPath), true)
-	if err != nil {
+	// Generate autogen_link.go file
+	if err := l.generateAutogenLinkFile(path); err != nil {
 		return errors.Join(ErrLLPygGenerate, err)
 	}
 
-	os.RemoveAll(generatedPath)
+	// Generate go.mod file if it doesn't exist
+	if err := l.generateGoModFile(path); err != nil {
+		return errors.Join(ErrLLPygGenerate, err)
+	}
+
 	return nil
 }
 
@@ -192,4 +210,33 @@ func (l *llpygGenerator) Check(dir string) error {
 		}
 	}
 	return nil
+}
+
+func (l *llpygGenerator) generateAutogenLinkFile(path string) error {
+	content := fmt.Sprintf(`package %s
+
+import _ "github.com/goplus/lib/py"
+
+// LLGoPackage is defined in the main binding file
+`, l.packageName)
+
+	autogenFile := filepath.Join(path, l.packageName+"_autogen_link.go")
+	return os.WriteFile(autogenFile, []byte(content), 0644)
+}
+
+func (l *llpygGenerator) generateGoModFile(path string) error {
+	goModFile := filepath.Join(path, "go.mod")
+	if _, err := os.Stat(goModFile); err == nil {
+		// go.mod already exists, skip
+		return nil
+	}
+
+	content := fmt.Sprintf(`module github.com/goplus/llpkg/%s
+
+go 1.23
+
+require github.com/goplus/lib v0.2.0
+`, l.packageName)
+
+	return os.WriteFile(goModFile, []byte(content), 0644)
 }
