@@ -9,26 +9,26 @@ import (
 	"github.com/goplus/llpkgstore/internal/actions/generator/llpyg"
 )
 
-// TestVerification 测试 verification 命令的核心功能
+// TestVerification tests the core functionality of the verification command
 func TestVerification(testDir string) error {
-	fmt.Println("=== 开始测试 llpkgstore Python verification 功能 ===")
+	fmt.Println("=== Starting llpkgstore Python verification test ===")
 
-	// 测试 1: 验证配置文件解析
-	fmt.Println("\n1. 测试配置文件解析...")
+	// Test 1: Verify configuration file parsing
+	fmt.Println("\n1. Testing configuration file parsing...")
 	cfg, err := config.ParseLLPkgConfig(filepath.Join(testDir, LLGOModuleIdentifyFile))
 	if err != nil {
-		return fmt.Errorf("解析配置文件失败: %v", err)
+		return fmt.Errorf("failed to parse configuration file: %v", err)
 	}
-	fmt.Printf("✓ 配置文件解析成功\n")
-	fmt.Printf("  包类型: %s\n", cfg.Type)
-	fmt.Printf("  包名称: %s\n", cfg.Upstream.Package.Name)
-	fmt.Printf("  包版本: %s\n", cfg.Upstream.Package.Version)
+	fmt.Printf("✓ Configuration file parsed successfully\n")
+	fmt.Printf("  Package type: %s\n", cfg.Type)
+	fmt.Printf("  Package name: %s\n", cfg.Upstream.Package.Name)
+	fmt.Printf("  Package version: %s\n", cfg.Upstream.Package.Version)
 
-	// 测试 2: 验证 llpyg 生成器的 Check 功能
-	fmt.Println("\n2. 测试 llpyg 生成器的 Check 功能...")
+	// Test 2: Verify llpyg generator Check functionality
+	fmt.Println("\n2. Testing llpyg generator Check functionality...")
 	generator := llpyg.New(testDir, cfg.Upstream.Package.Name, testDir)
 
-	// 检查生成的文件是否存在
+	// Check if generated files exist
 	requiredFiles := []string{
 		filepath.Join(testDir, cfg.Upstream.Package.Name+".go"),
 		filepath.Join(testDir, "go.mod"),
@@ -39,111 +39,111 @@ func TestVerification(testDir string) error {
 	allFilesExist := true
 	for _, file := range requiredFiles {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
-			fmt.Printf("✗ %s 文件不存在\n", filepath.Base(file))
+			fmt.Printf("✗ %s file does not exist\n", filepath.Base(file))
 			allFilesExist = false
 		} else {
-			fmt.Printf("✓ %s 文件存在\n", filepath.Base(file))
+			fmt.Printf("✓ %s file exists\n", filepath.Base(file))
 		}
 	}
 
 	if !allFilesExist {
-		return fmt.Errorf("部分必需文件不存在，请先运行 generate 命令")
+		return fmt.Errorf("some required files are missing, please run generate command first")
 	}
 
-	// 执行 Check
+	// Execute Check
 	err = generator.Check(testDir)
 	if err != nil {
-		fmt.Printf("✗ Check 失败: %v\n", err)
-		return fmt.Errorf("generator.Check 失败: %v", err)
+		fmt.Printf("✗ Check failed: %v\n", err)
+		return fmt.Errorf("generator.Check failed: %v", err)
 	} else {
-		fmt.Println("✓ Check 成功")
+		fmt.Println("✓ Check successful")
 	}
 
-	// 测试 3: 验证 Go 模块编译
-	fmt.Println("\n3. 测试 Go 模块编译...")
+	// Test 3: Verify Go module compilation
+	fmt.Println("\n3. Testing Go module compilation...")
 
-	// 检查 go.mod 文件内容
+	// Check go.mod file content
 	goModPath := filepath.Join(testDir, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
-		fmt.Println("✓ go.mod 文件存在")
+		fmt.Println("✓ go.mod file exists")
 	} else {
-		return fmt.Errorf("go.mod 文件不存在: %v", err)
+		return fmt.Errorf("go.mod file does not exist: %v", err)
 	}
 
-	// 检查 go.sum 文件
+	// Check go.sum file
 	goSumPath := filepath.Join(testDir, "go.sum")
 	if _, err := os.Stat(goSumPath); err == nil {
-		fmt.Println("✓ go.sum 文件存在")
+		fmt.Println("✓ go.sum file exists")
 	} else {
-		return fmt.Errorf("go.sum 文件不存在: %v", err)
+		return fmt.Errorf("go.sum file does not exist: %v", err)
 	}
 
-	// 测试 4: 验证生成的文件内容
-	fmt.Println("\n4. 验证生成的文件内容...")
+	// Test 4: Verify generated file content
+	fmt.Println("\n4. Verifying generated file content...")
 
-	// 检查生成的 Go 文件大小
+	// Check generated Go file size
 	goFilePath := filepath.Join(testDir, cfg.Upstream.Package.Name+".go")
 	if info, err := os.Stat(goFilePath); err == nil {
-		fmt.Printf("✓ %s 文件大小: %d bytes\n", filepath.Base(goFilePath), info.Size())
+		fmt.Printf("✓ %s file size: %d bytes\n", filepath.Base(goFilePath), info.Size())
 		if info.Size() > 1000 {
-			fmt.Println("✓ 文件大小合理")
+			fmt.Println("✓ File size is reasonable")
 		} else {
-			fmt.Println("⚠ 文件可能太小，可能生成不完整")
+			fmt.Println("⚠ File may be too small, generation may be incomplete")
 		}
 	} else {
-		return fmt.Errorf("无法获取 %s 文件信息: %v", filepath.Base(goFilePath), err)
+		return fmt.Errorf("unable to get %s file info: %v", filepath.Base(goFilePath), err)
 	}
 
-	// 检查 llpyg.cfg 文件
+	// Check llpyg.cfg file
 	llpygCfgPath := filepath.Join(testDir, "llpyg.cfg")
 	if _, err := os.Stat(llpygCfgPath); err == nil {
-		fmt.Println("✓ llpyg.cfg 配置文件存在")
+		fmt.Println("✓ llpyg.cfg configuration file exists")
 	} else {
-		return fmt.Errorf("llpyg.cfg 配置文件不存在: %v", err)
+		return fmt.Errorf("llpyg.cfg configuration file does not exist: %v", err)
 	}
 
-	// 测试 5: 验证 verification 命令的核心逻辑
-	fmt.Println("\n5. 验证 verification 命令的核心逻辑...")
+	// Test 5: Verify verification command core logic
+	fmt.Println("\n5. Verifying verification command core logic...")
 
-	// 模拟 verification 命令的核心步骤
-	fmt.Println("  步骤 1: 配置文件解析 ✓")
-	fmt.Println("  步骤 2: 包安装 (跳过，需要 pip3)")
-	fmt.Println("  步骤 3: 生成绑定 ✓")
-	fmt.Println("  步骤 4: 检查生成结果 ✓")
-	fmt.Println("  步骤 5: 编译验证 ✓")
+	// Simulate verification command core steps
+	fmt.Println("  Step 1: Configuration file parsing ✓")
+	fmt.Println("  Step 2: Package installation (skipped, requires pip3)")
+	fmt.Println("  Step 3: Binding generation ✓")
+	fmt.Println("  Step 4: Generation result check ✓")
+	fmt.Println("  Step 5: Compilation verification ✓")
 
-	fmt.Println("\n=== 测试完成 ===")
-	fmt.Println("\n总结:")
-	fmt.Println("- generate 命令: 已成功生成 Python 绑定")
-	fmt.Println("- 生成的文件: 所有必需文件都存在")
-	fmt.Println("- Check 功能: 验证通过")
-	fmt.Println("- verification 命令: 核心逻辑验证通过")
-	fmt.Println("\n注意:")
-	fmt.Println("- 完整的 verification 命令需要 GitHub 环境")
-	fmt.Println("- 本地测试已覆盖主要功能")
+	fmt.Println("\n=== Test completed ===")
+	fmt.Println("\nSummary:")
+	fmt.Println("- generate command: Successfully generated Python bindings")
+	fmt.Println("- Generated files: All required files exist")
+	fmt.Println("- Check functionality: Verification passed")
+	fmt.Println("- verification command: Core logic verification passed")
+	fmt.Println("\nNote:")
+	fmt.Println("- Complete verification command requires GitHub environment")
+	fmt.Println("- Local test covers main functionality")
 
 	return nil
 }
 
-// TestGenerateAndVerification 测试完整的生成和验证流程
+// TestGenerateAndVerification tests the complete generation and verification process
 func TestGenerateAndVerification(testDir string) error {
-	fmt.Println("=== 开始完整测试流程 ===")
+	fmt.Println("=== Starting complete test process ===")
 
-	// 首先运行 generate 命令
-	fmt.Println("\n1. 运行 generate 命令...")
+	// First run generate command
+	fmt.Println("\n1. Running generate command...")
 	err := runLLPygGenerateWithDir(testDir)
 	if err != nil {
-		return fmt.Errorf("generate 命令失败: %v", err)
+		return fmt.Errorf("generate command failed: %v", err)
 	}
-	fmt.Println("✓ generate 命令成功")
+	fmt.Println("✓ generate command successful")
 
-	// 然后运行 verification 测试
-	fmt.Println("\n2. 运行 verification 测试...")
+	// Then run verification test
+	fmt.Println("\n2. Running verification test...")
 	err = TestVerification(testDir)
 	if err != nil {
-		return fmt.Errorf("verification 测试失败: %v", err)
+		return fmt.Errorf("verification test failed: %v", err)
 	}
 
-	fmt.Println("\n=== 完整测试流程成功 ===")
+	fmt.Println("\n=== Complete test process successful ===")
 	return nil
 }

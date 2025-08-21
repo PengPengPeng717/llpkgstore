@@ -21,72 +21,72 @@ var installCmd = &cobra.Command{
 func manuallyInstall(cmd *cobra.Command, args []string) error {
 	cfgPath := args[0]
 
-	// 检查配置文件是否存在
+	// Check if configuration file exists
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		return fmt.Errorf("配置文件不存在: %s", cfgPath)
+		return fmt.Errorf("configuration file does not exist: %s", cfgPath)
 	}
 
-	// 解析配置文件
+	// Parse configuration file
 	LLPkgConfig, err := config.ParseLLPkgConfig(cfgPath)
 	if err != nil {
-		return fmt.Errorf("解析配置文件失败: %v", err)
+		return fmt.Errorf("failed to parse configuration file: %v", err)
 	}
 
-	// 检查包类型
+	// Check package type
 	if LLPkgConfig.Type != "python" {
-		return fmt.Errorf("不支持的包类型: %s，当前仅支持 Python 包", LLPkgConfig.Type)
+		return fmt.Errorf("unsupported package type: %s, currently only Python packages are supported", LLPkgConfig.Type)
 	}
 
-	// 获取输出目录
+	// Get output directory
 	output, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return err
 	}
 
-	// 如果输出目录为空，使用当前目录
+	// If output directory is empty, use current directory
 	if output == "" {
 		output = "."
 	}
 
-	// 确保输出目录存在
+	// Ensure output directory exists
 	if err := os.MkdirAll(output, 0755); err != nil {
-		return fmt.Errorf("创建输出目录失败: %v", err)
+		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	log.Printf("开始安装 Python 包: %s==%s", LLPkgConfig.Upstream.Package.Name, LLPkgConfig.Upstream.Package.Version)
-	log.Printf("输出目录: %s", output)
+	log.Printf("Starting to install Python package: %s==%s", LLPkgConfig.Upstream.Package.Name, LLPkgConfig.Upstream.Package.Version)
+	log.Printf("Output directory: %s", output)
 
-	// 创建 upstream 实例
+	// Create upstream instance
 	upstream, err := config.NewUpstreamFromConfig(LLPkgConfig.Upstream)
 	if err != nil {
-		return fmt.Errorf("创建 upstream 实例失败: %v", err)
+		return fmt.Errorf("failed to create upstream instance: %v", err)
 	}
 
-	// 执行安装
+	// Execute installation
 	installedPackages, err := upstream.Installer.Install(upstream.Pkg, output)
 	if err != nil {
-		return fmt.Errorf("安装失败: %v", err)
+		return fmt.Errorf("installation failed: %v", err)
 	}
 
-	log.Printf("安装成功！已安装的包: %v", installedPackages)
+	log.Printf("Installation successful! Installed packages: %v", installedPackages)
 
-	// 显示安装结果
-	fmt.Printf("✓ 成功安装 Python 包: %s==%s\n", LLPkgConfig.Upstream.Package.Name, LLPkgConfig.Upstream.Package.Version)
-	fmt.Printf("  安装位置: %s\n", output)
-	fmt.Printf("  已安装的包: %v\n", installedPackages)
+	// Display installation results
+	fmt.Printf("✓ Successfully installed Python package: %s==%s\n", LLPkgConfig.Upstream.Package.Name, LLPkgConfig.Upstream.Package.Version)
+	fmt.Printf("  Installation location: %s\n", output)
+	fmt.Printf("  Installed packages: %v\n", installedPackages)
 
-	// 如果是 pip 安装器，显示额外的信息
+	// If it's a pip installer, show additional information
 	if LLPkgConfig.Upstream.Installer.Name == "pip" {
-		fmt.Println("\n注意:")
-		fmt.Println("- 包已通过 pip3 安装到指定目录")
-		fmt.Println("- 可以使用 'generate' 命令生成 Go 绑定")
-		fmt.Println("- 可以使用 'test' 命令验证安装结果")
+		fmt.Println("\nNote:")
+		fmt.Println("- Package has been installed to the specified directory via pip3")
+		fmt.Println("- You can use 'generate' command to generate Go bindings")
+		fmt.Println("- You can use 'test' command to verify installation results")
 	}
 
 	return nil
 }
 
 func init() {
-	installCmd.Flags().StringP("output", "o", "", "安装输出目录 (默认: 当前目录)")
+	installCmd.Flags().StringP("output", "o", "", "Installation output directory (default: current directory)")
 	rootCmd.AddCommand(installCmd)
 }
