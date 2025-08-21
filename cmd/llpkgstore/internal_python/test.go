@@ -16,7 +16,7 @@ var testCmd = &cobra.Command{
 }
 
 func runTest(_ *cobra.Command, args []string) error {
-	// 确定测试目录
+	// Determine test directory
 	testDir := "."
 	if len(args) > 0 {
 		if absPath, err := filepath.Abs(args[0]); err == nil {
@@ -24,23 +24,23 @@ func runTest(_ *cobra.Command, args []string) error {
 		}
 	}
 
-	// 检查测试目录是否存在
+	// Check if test directory exists
 	if _, err := os.Stat(testDir); os.IsNotExist(err) {
-		return fmt.Errorf("测试目录不存在: %s", testDir)
+		return fmt.Errorf("test directory does not exist: %s", testDir)
 	}
 
-	// 检查 llpkg.cfg 文件是否存在
+	// Check if llpkg.cfg file exists
 	cfgPath := filepath.Join(testDir, LLGOModuleIdentifyFile)
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		return fmt.Errorf("配置文件不存在: %s", cfgPath)
+		return fmt.Errorf("configuration file does not exist: %s", cfgPath)
 	}
 
-	fmt.Printf("开始测试目录: %s\n", testDir)
+	fmt.Printf("Starting test directory: %s\n", testDir)
 
-	// 运行验证测试
+	// Run verification test
 	err := TestVerification(testDir)
 	if err != nil {
-		return fmt.Errorf("验证测试失败: %v", err)
+		return fmt.Errorf("verification test failed: %v", err)
 	}
 
 	return nil
