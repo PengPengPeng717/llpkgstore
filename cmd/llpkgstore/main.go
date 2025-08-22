@@ -1,29 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	cmd_cpp "github.com/goplus/llpkgstore/cmd/llpkgstore/internal"
+	cmd_cpp "github.com/goplus/llpkgstore/cmd/llpkgstore/internal_cpp"
 	cmd_python "github.com/goplus/llpkgstore/cmd/llpkgstore/internal_python"
+	"github.com/goplus/llpkgstore/config"
 )
-
-// LLPkgConfig 结构体用于解析 llpkg.cfg 文件
-type LLPkgConfig struct {
-	Type     string `json:"type,omitempty"`
-	Upstream struct {
-		Package struct {
-			Name    string `json:"name"`
-			Version string `json:"version"`
-		} `json:"package"`
-		Installer struct {
-			Name   string                 `json:"name"`
-			Config map[string]interface{} `json:"config"`
-		} `json:"installer"`
-	} `json:"upstream"`
-}
 
 // detectPackageType detects the package type in the current directory or specified directory
 func detectPackageType(dir string) (string, error) {
@@ -42,14 +27,9 @@ func detectPackageType(dir string) (string, error) {
 		return "", fmt.Errorf("llpkg.cfg file not found in directory %s", dir)
 	}
 
-	// Read and parse configuration file
-	data, err := os.ReadFile(cfgPath)
+	// Use config.ParseLLPkgConfig to read and parse configuration file
+	cfg, err := config.ParseLLPkgConfig(cfgPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to read configuration file: %v", err)
-	}
-
-	var cfg LLPkgConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
 		return "", fmt.Errorf("failed to parse configuration file: %v", err)
 	}
 
@@ -110,7 +90,7 @@ func main() {
 	case "python":
 		fmt.Println("Using Python version of llpkgstore command")
 		cmd_python.Execute()
-	case "cpp", "c++", "c":
+	case "cpp":
 		fmt.Println("Using C++ version of llpkgstore command")
 		cmd_cpp.Execute()
 	default:
