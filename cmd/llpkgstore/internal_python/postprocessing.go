@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/goplus/llpkgstore/config"
 	"github.com/spf13/cobra"
@@ -70,8 +69,10 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Skip llpkgstore.json update for now - focus only on GitHub Release
-	fmt.Println("Skipping llpkgstore.json update - focusing on GitHub Release creation")
+	// Generate or update llpkgstore.json
+	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version); err != nil {
+		return fmt.Errorf("failed to update llpkgstore.json: %v", err)
+	}
 
 	// Try to create GitHub Release if we're in a GitHub Actions environment
 	if err := createGitHubRelease(packageName, version, currentDir); err != nil {
@@ -115,7 +116,8 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 	// Create a simple release for Python packages
 	// Since Python packages don't follow the same version mapping as C++ packages,
 	// we'll create a release with the package name and version
-	releaseTag := fmt.Sprintf("%s-%s", packageName, version)
+	// releaseTag := fmt.Sprintf("%s-%s", packageName, version)
+	releaseTag := fmt.Sprintf("%s/%s", packageName, version)
 	fmt.Printf("Release tag: %s\n", releaseTag)
 
 	// Use GitHub CLI to create the release
@@ -123,10 +125,27 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 	fmt.Println("Checking if release already exists...")
 	checkCmd := fmt.Sprintf("gh release view %s --repo %s >/dev/null 2>&1", releaseTag, repo)
 	if err := exec.Command("bash", "-c", checkCmd).Run(); err == nil {
-		fmt.Printf("Release %s already exists, skipping creation\n", releaseTag)
-		return nil
+		fmt.Printf("Release %s already exists, deleting existing release...\n", releaseTag)
+
+		// Delete the existing release
+		deleteCmd := fmt.Sprintf("gh release delete %s --repo %s --yes", releaseTag, repo)
+		fmt.Printf("Executing delete command: %s\n", deleteCmd)
+
+		deleteCmdExec := exec.Command("bash", "-c", deleteCmd)
+		deleteCmdExec.Stdout = os.Stdout
+		deleteCmdExec.Stderr = os.Stderr
+		deleteCmdExec.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
+
+		if err := deleteCmdExec.Run(); err != nil {
+			return fmt.Errorf("failed to delete existing GitHub release: %v", err)
+		}
+
+		fmt.Printf("Successfully deleted existing release: %s\n", releaseTag)
+	} else {
+		fmt.Println("Release does not exist, will create new release...")
 	}
-	fmt.Println("Release does not exist, creating new release...")
+
+	fmt.Println("Creating new release...")
 
 	// Create the release using GitHub CLI
 	createCmd := fmt.Sprintf("gh release create %s --title 'Release %s %s' --notes 'Automated release for %s version %s' --repo %s --draft=false --prerelease=false",
@@ -163,25 +182,11 @@ func updateLLPkgStoreJSON(packageName, pythonVersion, goVersion string) error {
 			return fmt.Errorf("failed to read existing llpkgstore.json: %v", err)
 		}
 
-		// Check if file is empty or contains only whitespace
-		if len(strings.TrimSpace(string(data))) == 0 {
-			fmt.Println("llpkgstore.json is empty, creating new structure")
-			llpkgStore = LLPkgStoreJSON{
-				Packages: make(map[string]PackageInfo),
-			}
-		} else {
-			// Try to parse the JSON
-			if err := json.Unmarshal(data, &llpkgStore); err != nil {
-				fmt.Printf("Warning: failed to parse existing llpkgstore.json: %v\n", err)
-				fmt.Println("Creating new llpkgstore.json structure")
-				llpkgStore = LLPkgStoreJSON{
-					Packages: make(map[string]PackageInfo),
-				}
-			}
+		if err := json.Unmarshal(data, &llpkgStore); err != nil {
+			return fmt.Errorf("failed to parse existing llpkgstore.json: %v", err)
 		}
 	} else {
 		// File doesn't exist, create new structure
-		fmt.Println("llpkgstore.json not found, creating new file")
 		llpkgStore = LLPkgStoreJSON{
 			Packages: make(map[string]PackageInfo),
 		}
