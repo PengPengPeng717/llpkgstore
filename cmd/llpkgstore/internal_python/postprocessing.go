@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/goplus/llpkgstore/config"
 	"github.com/spf13/cobra"
@@ -69,10 +70,8 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Generate or update llpkgstore.json
-	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version); err != nil {
-		return fmt.Errorf("failed to update llpkgstore.json: %v", err)
-	}
+	// Skip llpkgstore.json update for now - focus only on GitHub Release
+	fmt.Println("Skipping llpkgstore.json update - focusing on GitHub Release creation")
 
 	// Try to create GitHub Release if we're in a GitHub Actions environment
 	if err := createGitHubRelease(packageName, version, currentDir); err != nil {
@@ -164,11 +163,25 @@ func updateLLPkgStoreJSON(packageName, pythonVersion, goVersion string) error {
 			return fmt.Errorf("failed to read existing llpkgstore.json: %v", err)
 		}
 
-		if err := json.Unmarshal(data, &llpkgStore); err != nil {
-			return fmt.Errorf("failed to parse existing llpkgstore.json: %v", err)
+		// Check if file is empty or contains only whitespace
+		if len(strings.TrimSpace(string(data))) == 0 {
+			fmt.Println("llpkgstore.json is empty, creating new structure")
+			llpkgStore = LLPkgStoreJSON{
+				Packages: make(map[string]PackageInfo),
+			}
+		} else {
+			// Try to parse the JSON
+			if err := json.Unmarshal(data, &llpkgStore); err != nil {
+				fmt.Printf("Warning: failed to parse existing llpkgstore.json: %v\n", err)
+				fmt.Println("Creating new llpkgstore.json structure")
+				llpkgStore = LLPkgStoreJSON{
+					Packages: make(map[string]PackageInfo),
+				}
+			}
 		}
 	} else {
 		// File doesn't exist, create new structure
+		fmt.Println("llpkgstore.json not found, creating new file")
 		llpkgStore = LLPkgStoreJSON{
 			Packages: make(map[string]PackageInfo),
 		}
