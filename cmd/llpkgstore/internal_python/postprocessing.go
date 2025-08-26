@@ -69,10 +69,8 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Generate or update llpkgstore.json
-	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version); err != nil {
-		return fmt.Errorf("failed to update llpkgstore.json: %v", err)
-	}
+	// Skip llpkgstore.json update for now - focus only on GitHub Release
+	fmt.Println("Skipping llpkgstore.json update - focusing on GitHub Release creation")
 
 	// Try to create GitHub Release if we're in a GitHub Actions environment
 	if err := createGitHubRelease(packageName, version, currentDir); err != nil {
