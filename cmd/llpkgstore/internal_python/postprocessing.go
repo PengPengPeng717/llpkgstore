@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/goplus/llpkgstore/config"
@@ -13,7 +14,7 @@ import (
 var postProcessingCmd = &cobra.Command{
 	Use:   "postprocessing",
 	Short: "Process merged PR for Python packages",
-	Long:  `Process merged PR for Python packages with simplified post-processing`,
+	Long:  `Process merged PR for Python packages with GitHub Release support`,
 	RunE:  runPythonPostProcessingCmd,
 }
 
@@ -73,11 +74,56 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to update llpkgstore.json: %v", err)
 	}
 
+	// Try to create GitHub Release if we're in a GitHub Actions environment
+	if err := createGitHubRelease(packageName, version, currentDir); err != nil {
+		fmt.Printf("Warning: Failed to create GitHub Release: %v\n", err)
+		fmt.Println("This is normal if not running in GitHub Actions or if release already exists")
+	}
+
 	fmt.Printf("Python package post-processing completed successfully\n")
 	fmt.Printf("Package: %s\n", packageName)
 	fmt.Printf("Python Version: %s\n", pythonVersion)
 	fmt.Printf("Go Version: %s\n", version)
 	fmt.Println("Note: This is a simplified post-processing process for Python packages")
+
+	return nil
+}
+
+// createGitHubRelease attempts to create a GitHub Release for the package
+func createGitHubRelease(packageName, version, currentDir string) error {
+	// Check if we're in a GitHub Actions environment
+	if os.Getenv("GITHUB_ACTIONS") != "true" {
+		return fmt.Errorf("not running in GitHub Actions environment")
+	}
+
+	// Create a simple release for Python packages
+	// Since Python packages don't follow the same version mapping as C++ packages,
+	// we'll create a release with the package name and version
+	releaseTag := fmt.Sprintf("%s-%s", packageName, version)
+
+	// Use GitHub CLI to create the release
+	// First check if release already exists
+	checkCmd := fmt.Sprintf("gh release view %s --repo $GITHUB_REPOSITORY >/dev/null 2>&1", releaseTag)
+	if err := exec.Command("bash", "-c", checkCmd).Run(); err == nil {
+		fmt.Printf("Release %s already exists, skipping creation\n", releaseTag)
+		return nil
+	}
+
+	// Create the release using GitHub CLI
+	createCmd := fmt.Sprintf("gh release create %s --title 'Release %s %s' --notes 'Automated release for %s version %s' --repo $GITHUB_REPOSITORY --draft=false --prerelease=false",
+		releaseTag, packageName, version, packageName, version)
+
+	cmd := exec.Command("bash", "-c", createCmd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create GitHub release: %v", err)
+	}
+
+	fmt.Printf("Successfully created GitHub Release: %s\n", releaseTag)
+	fmt.Printf("Package %s version %s is now available via: llgo get github.com/$GITHUB_REPOSITORY/%s@%s\n",
+		packageName, version, packageName, version)
 
 	return nil
 }
