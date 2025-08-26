@@ -91,39 +91,62 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 
 // createGitHubRelease attempts to create a GitHub Release for the package
 func createGitHubRelease(packageName, version, currentDir string) error {
+	fmt.Println("Starting GitHub Release creation...")
+
 	// Check if we're in a GitHub Actions environment
 	if os.Getenv("GITHUB_ACTIONS") != "true" {
 		return fmt.Errorf("not running in GitHub Actions environment")
 	}
 
+	// Check if GitHub CLI is available
+	if _, err := exec.LookPath("gh"); err != nil {
+		return fmt.Errorf("GitHub CLI (gh) is not installed: %v", err)
+	}
+
+	// Check if GITHUB_REPOSITORY is set
+	repo := os.Getenv("GITHUB_REPOSITORY")
+	if repo == "" {
+		return fmt.Errorf("GITHUB_REPOSITORY environment variable is not set")
+	}
+
+	fmt.Printf("Repository: %s\n", repo)
+	fmt.Printf("Package: %s\n", packageName)
+	fmt.Printf("Version: %s\n", version)
+
 	// Create a simple release for Python packages
 	// Since Python packages don't follow the same version mapping as C++ packages,
 	// we'll create a release with the package name and version
 	releaseTag := fmt.Sprintf("%s-%s", packageName, version)
+	fmt.Printf("Release tag: %s\n", releaseTag)
 
 	// Use GitHub CLI to create the release
 	// First check if release already exists
-	checkCmd := fmt.Sprintf("gh release view %s --repo $GITHUB_REPOSITORY >/dev/null 2>&1", releaseTag)
+	fmt.Println("Checking if release already exists...")
+	checkCmd := fmt.Sprintf("gh release view %s --repo %s >/dev/null 2>&1", releaseTag, repo)
 	if err := exec.Command("bash", "-c", checkCmd).Run(); err == nil {
 		fmt.Printf("Release %s already exists, skipping creation\n", releaseTag)
 		return nil
 	}
+	fmt.Println("Release does not exist, creating new release...")
 
 	// Create the release using GitHub CLI
-	createCmd := fmt.Sprintf("gh release create %s --title 'Release %s %s' --notes 'Automated release for %s version %s' --repo $GITHUB_REPOSITORY --draft=false --prerelease=false",
-		releaseTag, packageName, version, packageName, version)
+	createCmd := fmt.Sprintf("gh release create %s --title 'Release %s %s' --notes 'Automated release for %s version %s' --repo %s --draft=false --prerelease=false",
+		releaseTag, packageName, version, packageName, version, repo)
+
+	fmt.Printf("Executing command: %s\n", createCmd)
 
 	cmd := exec.Command("bash", "-c", createCmd)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create GitHub release: %v", err)
 	}
 
 	fmt.Printf("Successfully created GitHub Release: %s\n", releaseTag)
-	fmt.Printf("Package %s version %s is now available via: llgo get github.com/$GITHUB_REPOSITORY/%s@%s\n",
-		packageName, version, packageName, version)
+	fmt.Printf("Package %s version %s is now available via: llgo get github.com/%s/%s@%s\n",
+		packageName, version, repo, packageName, version)
 
 	return nil
 }
