@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/goplus/llpkgstore/config"
 	"github.com/spf13/cobra"
@@ -63,9 +65,14 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	// For Python packages, use simplified post-processing
-	// Directly use v0.0.1 as the version
-	version := "v0.0.1"
+	// Extract version from commit message
+	version, err := extractVersionFromCommit(currentDir)
+	if err != nil {
+		fmt.Printf("Warning: Failed to extract version from commit: %v\n", err)
+		fmt.Println("Falling back to default version v0.0.1")
+		version = "v0.0.1"
+	}
+
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
@@ -85,6 +92,59 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	fmt.Println("Note: This is a simplified post-processing process for Python packages")
 
 	return nil
+}
+
+// extractVersionFromCommit extracts version from the latest commit message
+func extractVersionFromCommit(currentDir string) (string, error) {
+	fmt.Println("Extracting version from commit message...")
+
+	// Get the latest commit message
+	cmd := exec.Command("git", "log", "-1", "--pretty=format:%s")
+	cmd.Dir = currentDir
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get commit message: %v", err)
+	}
+
+	commitMessage := strings.TrimSpace(string(output))
+	fmt.Printf("Latest commit message: %s\n", commitMessage)
+
+	// Parse version from commit message
+	// Support formats like:
+	// "Release-as: numpy/v1.26.4"
+	// "Release-as: v1.26.4"
+	// "Release: numpy/v1.26.4"
+	// "Version: v1.26.4"
+	version, err := parseVersionFromCommitMessage(commitMessage)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse version from commit message: %v", err)
+	}
+
+	fmt.Printf("Extracted version: %s\n", version)
+	return version, nil
+}
+
+// parseVersionFromCommitMessage parses version from commit message
+func parseVersionFromCommitMessage(commitMessage string) (string, error) {
+	// Define regex patterns for different formats
+	patterns := []string{
+		`Release-as:\s*[^/]+/(v[\d.]+)`, // "Release-as: numpy/v1.26.4"
+		`Release-as:\s*(v[\d.]+)`,       // "Release-as: v1.26.4"
+		`Release:\s*[^/]+/(v[\d.]+)`,    // "Release: numpy/v1.26.4"
+		`Release:\s*(v[\d.]+)`,          // "Release: v1.26.4"
+		`Version:\s*(v[\d.]+)`,          // "Version: v1.26.4"
+		`version:\s*(v[\d.]+)`,          // "version: v1.26.4"
+	}
+
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		matches := re.FindStringSubmatch(commitMessage)
+		if len(matches) > 1 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("no version pattern found in commit message: %s", commitMessage)
 }
 
 // createGitHubRelease attempts to create a GitHub Release for the package
@@ -111,10 +171,7 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 	fmt.Printf("Package: %s\n", packageName)
 	fmt.Printf("Version: %s\n", version)
 
-	// Create a simple release for Python packages
-	// Since Python packages don't follow the same version mapping as C++ packages,
-	// we'll create a release with the package name and version
-	// releaseTag := fmt.Sprintf("%s-%s", packageName, version)
+	// Create release tag using the extracted version
 	releaseTag := fmt.Sprintf("%s/%s", packageName, version)
 	fmt.Printf("Release tag: %s\n", releaseTag)
 
