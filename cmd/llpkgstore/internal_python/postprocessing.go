@@ -69,8 +69,8 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	version, err := extractVersionFromCommit(currentDir)
 	if err != nil {
 		fmt.Printf("Warning: Failed to extract version from commit: %v\n", err)
-		fmt.Println("Falling back to default version v0.0.1")
-		version = "v0.0.1"
+		fmt.Println("Falling back to default version v0.0.2")
+		version = "v0.0.2"
 	}
 
 	pythonVersion := cfg.Upstream.Package.Version
@@ -98,30 +98,38 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 func extractVersionFromCommit(currentDir string) (string, error) {
 	fmt.Println("Extracting version from commit message...")
 
-	// Get the latest commit message
-	cmd := exec.Command("git", "log", "-1", "--pretty=format:%s")
+	// 获取最近的几个 commit 消息，寻找包含版本信息的
+	cmd := exec.Command("git", "log", "-5", "--pretty=format:%s")
 	cmd.Dir = currentDir
 	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get commit message: %v", err)
+		return "", fmt.Errorf("failed to get commit messages: %v", err)
 	}
 
-	commitMessage := strings.TrimSpace(string(output))
-	fmt.Printf("Latest commit message: %s\n", commitMessage)
+	commitMessages := strings.Split(strings.TrimSpace(string(output)), "\n")
+	fmt.Printf("Recent commit messages: %v\n", commitMessages)
 
-	// Parse version from commit message
-	// Support formats like:
-	// "Release-as: numpy/v1.26.4"
-	// "Release-as: v1.26.4"
-	// "Release: numpy/v1.26.4"
-	// "Version: v1.26.4"
-	version, err := parseVersionFromCommitMessage(commitMessage)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse version from commit message: %v", err)
+	// 遍历最近的 commit 消息，寻找包含版本信息的
+	for _, commitMessage := range commitMessages {
+		commitMessage = strings.TrimSpace(commitMessage)
+		if commitMessage == "" {
+			continue
+		}
+
+		// 跳过自动生成的 commit 消息
+		if strings.Contains(commitMessage, "Update llpkgstore.json") {
+			continue
+		}
+
+		// 尝试解析版本
+		version, err := parseVersionFromCommitMessage(commitMessage)
+		if err == nil {
+			fmt.Printf("Found version in commit message: %s -> %s\n", commitMessage, version)
+			return version, nil
+		}
 	}
 
-	fmt.Printf("Extracted version: %s\n", version)
-	return version, nil
+	return "", fmt.Errorf("no version pattern found in recent commit messages")
 }
 
 // parseVersionFromCommitMessage parses version from commit message
