@@ -14,6 +14,41 @@ var ValidInstallers = []string{"conan", "pip"}
 type LLPkgConfig struct {
 	Type     string         `json:"type,omitempty"` // "python" for Python packages, empty for C/C++
 	Upstream UpstreamConfig `json:"upstream"`
+	Llpyg    LlpygConfig    `json:"llpyg,omitempty"` // llpyg command line options
+}
+
+// LlpygConfig defines the llpyg command line options
+type LlpygConfig struct {
+	OutputDir string `json:"output_dir,omitempty"` // -o option, default "./test"
+	ModName   string `json:"mod_name,omitempty"`   // -mod option, default package name
+	ModDepth  int    `json:"mod_depth,omitempty"`  // -d option, default 1
+}
+
+// Validate validates the LlpygConfig
+func (l *LlpygConfig) Validate() error {
+	if l.ModDepth < 0 {
+		return errors.New("mod_depth must be non-negative")
+	}
+	if l.ModDepth > 10 {
+		return errors.New("mod_depth should not exceed 10 for performance reasons")
+	}
+	return nil
+}
+
+// GetDefaultModDepth returns the default module depth if not specified
+func (l *LlpygConfig) GetDefaultModDepth() int {
+	if l.ModDepth == 0 {
+		return 1 // 默认深度为 1
+	}
+	return l.ModDepth
+}
+
+// GetDefaultOutputDir returns the default output directory if not specified
+func (l *LlpygConfig) GetDefaultOutputDir() string {
+	if l.OutputDir == "" {
+		return "./test" // 默认输出目录
+	}
+	return l.OutputDir
 }
 
 // UpstreamConfig defines the upstream configuration containing installer settings and package metadata.
