@@ -8,9 +8,11 @@ We'll firstly introduce the architecture of llpkgstore, and then discuss how use
 
 llpkgstore is designed to be a package distribution service for [**LLGo**](https://github.com/goplus/llgo).
 
-An **llpkg** is a Go module that invokes libraries of other languages through [**LLGo**](https://github.com/goplus/llgo)'s ecosystem integration capability. For now, most of the llpkg generation is handled by [**`llcppg`**](https://github.com/goplus/llcppg), a tool that converts C libraries into Go modules.
+An **llpkg** is a Go module that invokes libraries of other languages through [**LLGo**](https://github.com/goplus/llgo)'s ecosystem integration capability. Currently, llpkg generation is handled by multiple tools:
+- [**`llcppg`**](https://github.com/goplus/llcppg) for C/C++ libraries
+- [**`llpyg`**](https://github.com/toaction/llpyg) for Python packages
 
-You can also use `llcppg` manually to generate llpkgs, but it's not very easy to use. And retrieving llpkgs from a third-party service may cause security issues. Therefore, we've designed llpkgstore to provide a convenient way for users to obtain trustworthy llpkgs.
+You can also use these tools manually to generate llpkgs, but it's not very easy to use. And retrieving llpkgs from a third-party service may cause security issues. Therefore, we've designed llpkgstore to provide a convenient way for users to obtain trustworthy llpkgs.
 
 llpkgstore is composed of the following components:
 
@@ -18,8 +20,28 @@ llpkgstore is composed of the following components:
 2. A [web service](#llpkggoplusorg) that provides version mapping queries and llpkg searches.
 3. A [CLI tool](#getting-an-llpkg) `llgo get` for users to get llpkgs.
 
+## Supported Package Types
+
+### C/C++ Packages
+- **Tool**: `llcppg`
+- **Installer**: Conan package manager
+- **Status**: ✅ Fully supported
+- **Features**: Binary distribution, header files, `.pc` files
+
+### Python Packages
+- **Tool**: `llpyg`
+- **Installer**: pip package manager
+- **Status**: ✅ Fully supported (v2.0+)
+- **Features**: Python module bindings, Go interfaces, type safety
+
+### Future Support
+- **Rust**: Planned for future releases
+- **Node.js**: Under consideration
+- **Java**: Under consideration
+
 ## Directory structure
 
+### C/C++ Package Structure
 ```
 + {CLibraryName}
    |
@@ -37,27 +59,51 @@ llpkgstore is composed of the following components:
          |
          +-- {DemoName1}
          |       |
-         |       +-- main.go
-         |       |
-         |       +-- {OptionalSubPkgs}
+         +-- main.go
          |
          +-- {DemoName2}
          |       |
-         |       +-- ...
-         |
-         +-- ...
+         +-- main.go
 ```
 
-- `llpkg.cfg`: config file of llpkg
-- `llcppg.cfg`, `llcppg.symb.json`, `llcppg.pub`: config files of `llcppg`
-- `_demo`: tests to verify if llpkg can be imported, compiled and run as expected.
+### Python Package Structure
+```
++ {PythonPackageName}
+   |
+   +-- {GeneratedGoFiles}
+   |
+   +-- llpkg.cfg
+   |
+   +-- llpyg.cfg
+   |
+   +-- go.mod
+   |
+   +-- go.sum
+   |
+   +-- _demo
+         |
+         +-- {DemoName1}
+         |       |
+         +-- main.go
+         |
+         +-- {DemoName2}
+         |       |
+         +-- main.go
+```
+
+- `llpkg.cfg`: config file of llpkg (required for all package types)
+- `llcppg.cfg`, `llcppg.symb.json`, `llcppg.pub`: config files for C/C++ packages
+- `llpyg.cfg`: config file for Python packages
+- `_demo`: tests to verify if llpkg can be imported, compiled and run as expected
 
 To enable `llgo` to correctly identify the llpkg, an llpkg includes at minimum a `llpkg.cfg` file.
 
 ## llpkg.cfg Structure
 
+### C/C++ Package Configuration
 ```json
 {
+  "type": "cpp",
   "upstream": {
     "installer": {
       "name": "conan",
@@ -73,26 +119,54 @@ To enable `llgo` to correctly identify the llpkg, an llpkg includes at minimum a
 }
 ```
 
+### Python Package Configuration
+```json
+{
+  "type": "python",
+  "upstream": {
+    "installer": {
+      "name": "pip",
+      "config": {
+        "options": ""
+      }
+    },
+    "package": {
+      "name": "numpy",
+      "version": "1.26.4"
+    }
+  },
+  "llpyg": {
+    "output_dir": "./test",
+    "mod_name": "github.com/PengPengPeng717/llpkg/numpy",
+    "mod_depth": 1
+  }
+}
+```
+
 ### Field description
 
-**upstream**
+**Common Fields**
 
 | key | type | defaultValue | optional | description |
 |------|------|--------|------|------|
-| installer.name | `string` | "conan" | ✅ | upstream binary provider |
-| installer.config | `map[string]string` | {} | ✅ | config of installer |
-| package.name | `string` | - | ❌ | package name in platform |
-| package.version | `string` | - | ❌ | original package version |
+| type | `string` | "cpp" | ✅ | Package type: "cpp" or "python" |
+| upstream.installer.name | `string` | "conan" | ✅ | Upstream binary provider |
+| upstream.installer.config | `map[string]string` | {} | ✅ | Config of installer |
+| upstream.package.name | `string` | - | ❌ | Package name in platform |
+| upstream.package.version | `string` | - | ❌ | Original package version |
 
-#### For developers
+**Python-specific Fields (llpyg section)**
 
-**Currently**, the cfg system supports third-party libraries for C/C++ **only**. Support for other languages, such as Python and Rust, may be added in the future, but there are no updates at this time.
-
-At the moment, we heavily rely on Conan as the upstream distribution platform for C libraries. Therefore, Conan is the only installer supported for C libraries. This field exists for better extensibility and a possible situation that Conan's service might be unavailable in the future. We have planned to introduce more distribution platforms in the future to provide broader coverage.
+| key | type | defaultValue | optional | description |
+|------|------|--------|------|------|
+| llpyg.output_dir | `string` | "./test" | ✅ | Output directory for generated files |
+| llpyg.mod_name | `string` | package name | ✅ | Go module name |
+| llpyg.mod_depth | `int` | 1 | ✅ | Maximum module extraction depth (0-10) |
 
 ## Getting an llpkg
 
-Use `llgo get` to get an llpkg:
+### C/C++ Packages
+Use `llgo get` to get a C/C++ llpkg:
 
 ```bash
 llgo get clib@cversion
@@ -103,12 +177,21 @@ llgo get clib@cversion
 - `clib`: the original library name in C
 - `cversion`: the original version in C
 
-`llgo get` automatically handles two things:
+### Python Packages
+Use `llgo get` to get a Python llpkg:
 
-1. Prepends required prefixes to `clib` references, converting them into valid `module_path` identifiers.
-2. Convert `cversion` to canonical `module_version` using the version mapping table.
+```bash
+llgo get github.com/goplus/llpkg/numpy@v1.26.4
+```
 
-Or you can use `llgo` with go module syntax directly:
+Or use the simplified syntax (if supported):
+
+```bash
+llgo get numpy@1.26.4
+```
+
+### Universal Syntax
+Both package types support the universal syntax:
 
 ```bash
 llgo get module_path@module_version
@@ -137,20 +220,21 @@ It's the format of the part before `@` that determines the how `llgo get` will h
 >  1. `llgo` automatically resolves `clib@cversion` syntax into canonical `module_path@module_version` format.
 >  2. Pull the go module by `go get`.
 >  3. Check `llpkg.cfg` to determine if it's an llpkg. If it is:
->    - `llgo get` will run `upstream.installer` to install binaries. `.pc` files for building will be stored in `{LLGOPCCACHE}`.
->    - A comment in `go.mod` will be added to indicate the original `cversion`. Comments of indirect dependencies will be automatically processed by `go mod tidy`.
+>    - For C/C++ packages: `llgo get` will run `upstream.installer` to install binaries. `.pc` files for building will be stored in `{LLGOPCCACHE}`.
+>    - For Python packages: `llgo get` will use the generated Go bindings directly.
+>    - A comment in `go.mod` will be added to indicate the original version. Comments of indirect dependencies will be automatically processed by `go mod tidy`.
 >
 >       ```
->       // go.mod
+>       // go.mod for C/C++ package
 >       require (
 >             github.com/goplus/llpkg/cjson v1.1.0  // conan:cjson/1.7.18
 >       )
 >
+>       // go.mod for Python package
 >       require (
->             github.com/goplus/llpkg/zlib v1.0.0   // indirect; conan:zlib/1.3.1
+>             github.com/goplus/llpkg/numpy v1.26.4  // pip:numpy/1.26.4
 >       )
 >       ```
->
 
 ## Listing clib version mapping
 
@@ -176,10 +260,16 @@ If the `module` is an llpkg:
 
 `llgo list` will print the module path and the upstream of the local llpkg according to `go.mod` and `llpkg.cfg`.
 
-*e.g.* `llgo list -m cjson`:
+*e.g.* `llgo list -m cjson` (C/C++ package):
 
 ```
 github.com/goplus/llpkg/cjson v0.1.0[conan:cjson/1.7.18]
+```
+
+*e.g.* `llgo list -m numpy` (Python package):
+
+```
+github.com/goplus/llpkg/numpy v1.26.4[pip:numpy/1.26.4]
 ```
 
 2. `llgo list -m -versions`
@@ -192,35 +282,22 @@ Add `-versions` to check all version mappings of an llpkg.
 github.com/goplus/llpkg/cjson v0.1.0[conan:cjson/1.7.18] v0.1.1[conan:cjson/1.7.18] v0.2.0[conan:cjson/1.7.19]
 ```
 
+*e.g.* `llgo list -m -versions numpy`:
+
+```
+github.com/goplus/llpkg/numpy v1.26.4[pip:numpy/1.26.4] v1.27.0[pip:numpy/1.27.0]
+```
+
 3. JSON output
 
 We define a Go Struct for the output of `llgo list -m -versions -json`:
 
 ```go
 type Module struct {
-  // ...
-  // refer to struct Module in https://go.dev/ref/mod#go-list-m
-
-  LLPkg *LLPkg
-}
-
-type LLPkg struct {
-	Upstream Upstream
-}
-
-type Upstream struct {
-	Installer Installer
-	Package   Package
-}
-
-type Installer struct {
-	Name   string
-	Config map[string]string
-}
-
-type Package struct {
-	Name    string
-	Version string
+	Path     string   `json:"Path"`
+	Version  string   `json:"Version"`
+	Versions []string `json:"Versions,omitempty"`
+	Upstream string   `json:"Upstream,omitempty"`
 }
 ```
 
@@ -229,145 +306,77 @@ type Package struct {
 ```json
 {
   "Path": "github.com/goplus/llpkg/cjson",
-  "Version": "v0.1.0",
-  "Time": "2025-02-10T16:11:33Z",
-  "Indirect": false,
-  "GoVersion": "1.21",
-  "LLPkg": {
-    "Upstream": {
-        "Installer": {
-          "Name": "conan",
-          "Config": {
-            "options":""
-          }
-        },
-        "Package": {
-          "Name": "cjson",
-          "Version": "1.7.18"
-        }
-      }
-  }
+  "Version": "v0.2.0",
+  "Versions": ["v0.1.0", "v0.1.1", "v0.2.0"],
+  "Upstream": "conan:cjson/1.7.19"
 }
 ```
-#### Normal Go Module
 
-The output of `llgo list` will be the same as `go list`.
-
-### `clib`
-
-You can use `clib` as a argument. It will be interpreted as an llpkg in llpkgstore and converted to multiple `github.com/goplus/llpkg/{clib}`. The output is the same as the results generated by modules identified as llpkgs.
-
-e.g. `llgo list -m -versions cjson`
-
-```
-github.com/goplus/llpkg/cjson v0.1.0[conan:cjson/1.7.18] v0.1.1[conan:cjson/1.7.18] v0.2.0[conan:cjson/1.7.19]
-```
-
-## Version mapping rules
-
-We use a mapping table to convert a original C library version to a **MappedVersion**.
-
-### Initial version
-
-If the C library is stable, then start with `v1.0.0` (cjson@1.7.18)
-
-Otherwise, start with `v0.1.0`, until it releases a stable version. (libass@0.17.3)
-
-### Bumping rules
-
-| Component | Trigger Condition | Example |
-|-----------|--------------------|---------|
-| **MAJOR** | Breaking changes introduced by upstream C library updates. | `cjson@1.7.18` → `1.0.0`, `cjson@2.0` → `2.0.0` |
-| **MINOR** | Non-breaking upstream updates (features/fixes). | `cjson@1.7.19` (vs `1.7.18`) → `1.1.0`; `cjson@1.8.0` → `1.2.0` |
-| **PATCH** | llpkg internal fixes **unrelated** to upstream changes, or upstream patches on history versions (see [this](#prohibition-of-legacy-patch-maintenance)). | `llpkg@1.0.0` → `1.0.1` |
-
-- Currently, we only consider C library updates since the first release of an llpkg.
-- Pre-release versions of C library like `v1.2.3-beta.2` would not be accepted.
-- **Note**: Please note that the version number of the llpkg is **not related** to the version number of the C library. It's the llpkg's MINOR update that corresponds to the C library's PATCH update, while the llpkg's PATCH update is used for indicating llpkg's self-updating.
-
-### Branch maintenance strategy
-
-#### Context
-
-- Existing repository tracks upstream `cjson@1.6` with historical versions: `cjson@1.5.7`, `cjson@1.5.6`, `cjson@1.6`.
-- Upstream releases `1.5.8` targeting older `1.5.x` series.
-
-#### Rule
-
-`1.5.8` **cannot** be merged into `main` branch (currently tracking `1.6`). Instead, we should create a new branch `release-branch.cjson/v1.5` and commit to it.
-
-### Prohibition of legacy patch maintenance
-
-#### Problem
-
-As the previous example shows, non-breaking changes introduced by upstream C library updates should be indicated by llpkg's **MINOR** update. But there's one exception:
-
-| C Library Version | llpkg Version | Issue |
-|--------------------|---------------|-------|
-| 1.5.1             | `1.0.0`       | Initial release |
-| 1.5.1 (llpkg fix) | `1.0.1`       | Patch increment |
-| 1.6               | `1.1.0`       | Minor increment |
-| 1.5.2             | ?             | Conflict: `1.1.0` already allocated |
-
-In this case, upstream releases `1.5.2` targeting older `1.5.x` series, which should have been represented by **MINOR** update. However, we cannot simply assign `1.2.0` to `1.5.2`, because in that case, `1.6` would be less prioritized than `1.5.2` (breaking version ordering). We can't assign `1.1.0` either, because `1.1.0` is already allocated to `1.6`.
-
-The solution that keeps the version ordering is to update llpkg's **PATCH**. If we increment PATCH to `1.0.2` to represent `cjson@1.5.2`:
-
-| C Library Version | llpkg Version | Issue |
-|--------------------|---------------|-------|
-| 1.5.1             | `1.0.0`       | Initial release |
-| 1.5.1 (llpkg fix) | `1.0.1`       | Patch increment |
-| 1.6               | `1.1.0`       | Minor increment |
-| 1.5.2             | `1.0.2`       | Conflict: `1.1.0` already allocated |
-| 1.5.1 (llpkg fix 2) | `1.0.3`       | Patch increment |
-
-`cjson@1.5.2` > `cjson@1.5.1` maps to `llpkg@1.0.2` < `llpkg@1.0.3`, which causes MVS to prioritize `1.0.3` (lower priority upstream version) over `1.0.2`. llpkg's self patching for previous minor versions breaks the version ordering!
-
-#### Conflict resolution rule
-
-When upstream releases patch updates for **previous minor versions**:
-- NO further patches shall be applied to earlier upstream patch versions
-- ALL maintenance MUST target the **newest upstream patch version**
-
-#### Rationale
-
-New patch updates from upstream naturally replace older fixes. Keeping old patch versions creates unnecessary differences that don't align with SemVer principles **and may leave security vulnerabilities unpatched**.
-
-#### Workflow
-
-- cjson@1.5.8 released → llpkg MUST update from latest 1.5.x baseline (1.5.7)
-- Original cjson@1.5.1 branch becomes immutable
-
-### Mapping file structure
-
-`llpkgstore.json`:
+*e.g.* `llgo list -m -versions -json numpy`:
 
 ```json
 {
-    "cgood": {
-        "versions" : [{
-            "c": "1.3",
-            "go": ["v0.1.0", "v0.1.1"]
-        },
-        {
-            "c": "1.3.1",
-            "go": ["v1.1.0"]
-        }]
-    }
+  "Path": "github.com/goplus/llpkg/numpy",
+  "Version": "v1.27.0",
+  "Versions": ["v1.26.4", "v1.27.0"],
+  "Upstream": "pip:numpy/1.27.0"
 }
 ```
 
-- `c`: the original C library version.
-- `go`: the converted version.
+### `clib`
 
-We have to consider about the module regenerating due to generator upgrading, hence, the relationship between the original C library version and the mapping version is one-to-many.
+`llgo list` will convert `clib` to `module_path` and then process it as `module`.
 
-`llgo get` is expected to select the latest version from the `go` field.
+*e.g.* `llgo list -m cjson`:
 
-## Publication via GitHub Action
+```
+github.com/goplus/llpkg/cjson v0.2.0[conan:cjson/1.7.19]
+```
 
-### Workflow
+*e.g.* `llgo list -m numpy`:
 
+```
+github.com/goplus/llpkg/numpy v1.27.0[pip:numpy/1.27.0]
+```
+
+## Package Generation Workflow
+
+### C/C++ Package Generation
+
+A standard method for generating valid C/C++ llpkgs:
+1. Receive binaries/headers from [installer](#llpkgcfg-structure), and index them into `.pc` files
+2. Detect the generator from configuration files. For example, if an `llcppg.cfg` file is present in the current directory, we can directly use `llcppg`
+3. Automatically generate llpkg using a generator for different platforms
+4. Combine generated results into one Go module
+5. Debug and re-generate llpkg by modifying the configuration file
+
+### Python Package Generation
+
+A standard method for generating valid Python llpkgs:
+1. Install Python package using pip installer
+2. Use `llpyg` tool to generate Go bindings for Python modules
+3. Configure output directory, module name, and extraction depth
+4. Generate Go interfaces and type-safe bindings
+5. Create Go module with proper dependencies
+6. Test generated bindings with demo code
+
+### Generation Commands
+
+#### C/C++ Packages
+```bash
+llpkgstore generate
+```
+
+#### Python Packages
+```bash
+llpkgstore generate
+```
+
+This automatically detects the package type from `llpkg.cfg` and uses the appropriate generator.
+
+## PR Workflow
+
+### Standard PR workflow
 1. Create PR to trigger GitHub Action
 2. PR verification
 3. llpkg generation
@@ -384,11 +393,12 @@ We have to consider about the module regenerating due to generator upgrading, he
 ### llpkg generation
 
 A standard method for generating valid llpkgs:
-1. Receive binaries/headers from [installer](#llpkgcfg-structure), and index them into `.pc` files
-2. Detect the generator from configuration files. For example, if an `llcppg.cfg` file is present in the current directory, we can directly use `llcppg`
-3. Automatically generate llpkg using a generator for different platforms
-4. Combine generated results into one Go module
-5. Debug and re-generate llpkg by modifying the configuration file
+1. **C/C++ packages**: Receive binaries/headers from [installer](#llpkgcfg-structure), and index them into `.pc` files
+2. **Python packages**: Install Python package using pip and generate Go bindings with `llpyg`
+3. Detect the generator from configuration files. For example, if an `llcppg.cfg` file is present in the current directory, we can directly use `llcppg`, or if `llpyg.cfg` is present, we can use `llpyg`
+4. Automatically generate llpkg using a generator for different platforms
+5. Combine generated results into one Go module
+6. Debug and re-generate llpkg by modifying the configuration file
 
 ### Merge PR
 The maintainer **SHOULD** squash commits before merging a PR. The squash commit message **MUST** include [`{MappedVersion}`](#mappedversion-in-pr-commit) to enable the Post-processing GitHub Action to parse it correctly.
@@ -397,16 +407,23 @@ The maintainer **SHOULD** squash commits before merging a PR. The squash commit 
 The `{MappedVersion}` **MUST** be included in at least one of the commits in the PR and **MUST** follow this format:
 
 ```
-Release-as: {CLibraryName}/{MappedVersion}
+Release-as: {PackageName}/{MappedVersion}
 ```
 
 The PR verification process will validate this format and abort the PR if it is invalid.
 
-**Example:**
+**Example for C/C++ package:**
 ```bash
 git merge
 # Modify the merge commit message
 git commit --amend -m "feat: add cjson" -m "Release-as: cjson/v1.0.0"
+```
+
+**Example for Python package:**
+```bash
+git merge
+# Modify the merge commit message
+git commit --amend -m "feat: add numpy" -m "Release-as: numpy/v1.26.4"
 ```
 
 ### Post-processing GitHub Action
@@ -414,16 +431,17 @@ The Post-processing GitHub Action will tag the commit according to the [Version 
 
 #### Version Tag Rule
 1. Extract the `{MappedVersion}` of the current package from the footer of the squashed commit.
-2. Follow Go's version management for nested modules and tag `{CLibraryName}/{MappedVersion}` for each version.
+2. Follow Go's version management for nested modules and tag `{PackageName}/{MappedVersion}` for each version.
 3. This design is fully compatible with native Go modules:
     ```
     github.com/goplus/llpkg/cjson@v1.7.18
+    github.com/goplus/llpkg/numpy@v1.26.4
     ```
 
 ### Legacy version maintenance workflow
 
 1. Create an issue to discuss the package that requires maintenance.
-2. The maintainer creates a label in the format `branch:release-branch.{CLibraryName}/{MappedVersion}` and adds it to the issue if the package needs maintenance.
+2. The maintainer creates a label in the format `branch:release-branch.{PackageName}/{MappedVersion}` and adds it to the issue if the package needs maintenance.
 3. A GitHub Action is triggered when the label is created. It determines whether a branch should be created based on the [Branch Maintenance Strategy](#branch-maintenance-strategy).
 4. Open a pull request (PR) for maintenance. The maintainer **SHOULD** merge the PR with the commit message `fixed {IssueID}` to close the related issue.
 5. When issues labeled with `branch:release-branch.` are closed, we need to determine whether to remove the branch. In the following case, the branch and label can be safely removed:
@@ -436,13 +454,13 @@ This service is hosted by GitHub Pages, and the `llpkgstore.json` file is locate
 ### Function
 
 1. Provide a download of the mapping table.
-2. Provide version queries for Go Modules corresponding to C libraries.
-3. Provide links to specific C libraries on Conan.io.
+2. Provide version queries for Go Modules corresponding to C libraries and Python packages.
+3. Provide links to specific C libraries on Conan.io and Python packages on PyPI.
 
 ### Router
 
 1. `/`: Home page with a search bar at the top and multiple llpkgs. Users can search for llpkgs by name and view the latest two versions. Clicking an llpkg opens a modal displaying:
-   - Information about the original C library on Conan
+   - Information about the original library (C library on Conan or Python package on PyPI)
    - All available versions of the llpkg
 
   ![Index](./llpkg_index.svg)
@@ -455,7 +473,7 @@ This service is hosted by GitHub Pages, and the `llpkgstore.json` file is locate
 
 ### Interaction with web service
 
-When executing `llgo get clib@cversion`, a series of actions will be performed to map `cversion` to `module_version`:
+When executing `llgo get clib@cversion` or `llgo get python_package@version`, a series of actions will be performed to map the version to `module_version`:
 1. Fetch the latest `llpkgstore.json`
 2. Parse the JSON file to find the corresponding `module_version` array
 3. Select the latest patched version from the array
@@ -468,3 +486,85 @@ One usage is to store `.pc` files of the C library and allow `llgo build` to fin
 1. `LLGOCACHE` defaults to `{UserCacheDir}/llgo/`
 2. `.pc` files of C libs needed by llpkg will be stored in `{LLGOCACHE}/pkg-config/{module_path}@{module_version}/`
 3. If `UserCacheDir` isn't avaliable, `llgo` will exit with an error
+
+## Python Package Support Details
+
+### Python Package Generation
+
+Python packages are generated using the `llpyg` tool, which creates Go bindings for Python modules. The process includes:
+
+1. **Package Installation**: Uses pip to install the specified Python package
+2. **Binding Generation**: Generates Go interfaces and type-safe bindings
+3. **Module Configuration**: Configures output directory, module name, and extraction depth
+4. **Go Module Creation**: Creates a proper Go module with dependencies
+
+### Python Package Features
+
+- **Type Safety**: Generated Go code includes proper type information
+- **Module Depth Control**: Configurable extraction depth for nested modules
+- **Custom Module Names**: Support for custom Go module names
+- **Demo Code**: Automatic generation of test and demo code
+
+### Python Package Testing
+
+Python packages include demo code in the `_demo` directory to verify:
+- Package import and compilation
+- Basic functionality testing
+- Type safety verification
+- Integration with Go ecosystem
+
+### Python Package Version Management
+
+Python packages follow the same version management strategy as C/C++ packages:
+- Version extraction from commit messages
+- GitHub Release creation
+- Tag management
+- Version mapping in `llpkgstore.json`
+
+## Architecture Improvements
+
+### Unified Version Management
+
+The latest version of llpkgstore includes unified version management for all package types:
+
+1. **Common Version Extraction**: Unified logic for extracting versions from commit messages
+2. **Standardized Version Validation**: Consistent semver validation across package types
+3. **Unified Version Mapping**: Common version mapping strategies
+4. **Consistent Branch Management**: Standardized branch naming and lifecycle
+
+### Enhanced Error Handling
+
+- **Structured Error Types**: Consistent error handling across all operations
+- **Detailed Logging**: Comprehensive logging for debugging and monitoring
+- **Error Recovery**: Mechanisms for handling and recovering from errors
+
+### Improved CI/CD Pipeline
+
+- **Package Type Detection**: Automatic detection of package types
+- **Conditional Processing**: Different processing logic for different package types
+- **Unified Workflow**: Consistent workflow across all package types
+- **Enhanced Testing**: Comprehensive testing for all package types
+
+## Future Roadmap
+
+### Planned Features
+
+1. **Rust Package Support**: Integration with Rust ecosystem
+2. **Node.js Package Support**: JavaScript/TypeScript package bindings
+3. **Java Package Support**: JVM ecosystem integration
+4. **Enhanced Version Management**: Advanced versioning strategies
+5. **Package Dependencies**: Cross-package dependency management
+
+### Performance Improvements
+
+1. **Parallel Processing**: Concurrent package generation
+2. **Caching Mechanisms**: Intelligent caching for faster builds
+3. **Incremental Generation**: Delta updates for existing packages
+4. **Resource Optimization**: Better memory and CPU utilization
+
+### Developer Experience
+
+1. **IDE Integration**: Better editor support
+2. **Debugging Tools**: Enhanced debugging capabilities
+3. **Documentation**: Comprehensive API documentation
+4. **Examples**: Rich examples and tutorials
