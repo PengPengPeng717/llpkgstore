@@ -2,12 +2,9 @@ package actions
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/goplus/llpkgstore/config"
-	"github.com/goplus/llpkgstore/internal/actions/env"
-	"github.com/goplus/llpkgstore/internal/actions/versions"
 )
 
 // PythonPostProcessor extends DefaultClient for Python-specific operations
@@ -28,74 +25,19 @@ func NewPythonPostProcessor() (*PythonPostProcessor, error) {
 }
 
 // Postprocessing handles Python package post-processing using unified interface
-// 完全遵循 C++ 的架构和流程
+// 直接调用 DefaultClient 的完整实现，确保与 C++ 完全一致
 func (p *PythonPostProcessor) Postprocessing() error {
-	fmt.Println("Starting unified Python package post-processing...")
+	fmt.Println("Starting Python package post-processing using unified DefaultClient architecture...")
 
-	// 阶段 1: 版本检测与验证 (与 C++ 一致)
-	sha, err := env.LatestCommitSHA()
+	// 直接调用父类的完整实现，确保所有功能都正常工作
+	// 包括：Git 标签创建、GitHub Release 创建、文件上传等
+	err := p.DefaultClient.Postprocessing()
 	if err != nil {
-		return err
+		return fmt.Errorf("Python package post-processing failed: %v", err)
 	}
 
-	// 检查是否为合并提交
-	if !p.isAssociatedWithPullRequest(sha) {
-		return fmt.Errorf("actions: not a merge request commit")
-	}
-
-	// 从提交消息中提取版本信息
-	version, err := p.mappedVersion()
-	if err != nil {
-		return err
-	}
-
-	// 解析版本格式: "clib/semver"
-	clib, mappedVersion, err := parseMappedVersion(version)
-	if err != nil {
-		return err
-	}
-
-	// 阶段 2: 配置解析 (与 C++ 一致)
-	cfg, err := config.ParseLLPkgConfig(filepath.Join(clib, "llpkg.cfg"))
-	if err != nil {
-		return err
-	}
-
-	// 阶段 3: 版本映射存储 (与 C++ 一致)
-	ver := versions.Read("llpkgstore.json")
-	ver.Write(clib, cfg.Upstream.Package.Version, mappedVersion)
-
-	// 阶段 4: Git 标签创建 (与 C++ 一致)
-	if hasTag(version) {
-		return fmt.Errorf("actions: tag has already existed")
-	}
-
-	if err := p.createTag(version, sha); err != nil {
-		return err
-	}
-
-	// 阶段 5: GitHub Release 创建 (与 C++ 一致)
-	release, err := p.createReleaseByTag(version)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.uploadArtifactsToRelease(release)
-	if err != nil {
-		return err
-	}
-
-	// 阶段 6: 遗留分支清理 (与 C++ 一致)
-	branchName, isLegacy, err := p.isLegacyVersion()
-	if err != nil {
-		return err
-	}
-	if isLegacy {
-		err = p.removeBranch(branchName)
-	}
-
-	fmt.Println("Python package post-processing completed successfully")
-	return err
+	fmt.Println("Python package post-processing completed successfully using unified architecture")
+	return nil
 }
 
 // Python 特定的辅助方法可以在这里添加
