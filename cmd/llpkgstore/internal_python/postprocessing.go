@@ -75,11 +75,24 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Update llpkgstore.json with version mapping (similar to C++ version)
-	fmt.Println("Updating llpkgstore.json with version mapping...")
-	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version); err != nil {
-		fmt.Printf("Warning: Failed to update llpkgstore.json: %v\n", err)
+	// Update local llpkgstore.json with version mapping (similar to C++ version)
+	fmt.Println("Updating local llpkgstore.json with version mapping...")
+	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version, "llpkgstore.json"); err != nil {
+		fmt.Printf("Warning: Failed to update local llpkgstore.json: %v\n", err)
 		fmt.Println("Continuing with GitHub Release creation...")
+	}
+
+	// Update llpkg/public/llpkgstore.json with version mapping
+	// Try to find the llpkg repository root directory
+	llpkgPublicPath := findLLPkgPublicPath(currentDir)
+	if llpkgPublicPath != "" {
+		fmt.Printf("Updating %s with version mapping...\n", llpkgPublicPath)
+		if err := updateLLPkgStoreJSON(packageName, pythonVersion, version, llpkgPublicPath); err != nil {
+			fmt.Printf("Warning: Failed to update %s: %v\n", llpkgPublicPath, err)
+			fmt.Println("Continuing with GitHub Release creation...")
+		}
+	} else {
+		fmt.Println("Warning: Could not find llpkg/public/llpkgstore.json, skipping update")
 	}
 
 	// Try to create GitHub Release if we're in a GitHub Actions environment
@@ -189,8 +202,11 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 
 // updateLLPkgStoreJSON updates the llpkgstore.json file with new package information
 // Uses C++ compatible format for version mapping
-func updateLLPkgStoreJSON(packageName, pythonVersion, goVersion string) error {
-	jsonPath := "llpkgstore.json"
+func updateLLPkgStoreJSON(packageName, pythonVersion, goVersion, jsonPath string) error {
+	// Ensure the directory exists for the target file
+	if err := os.MkdirAll(filepath.Dir(jsonPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory for %s: %v", jsonPath, err)
+	}
 
 	// Read existing JSON file if it exists
 	var llpkgStore LLPkgStoreJSON
@@ -201,8 +217,17 @@ func updateLLPkgStoreJSON(packageName, pythonVersion, goVersion string) error {
 			return fmt.Errorf("failed to read existing llpkgstore.json: %v", err)
 		}
 
-		if err := json.Unmarshal(data, &llpkgStore); err != nil {
-			return fmt.Errorf("failed to parse existing llpkgstore.json: %v", err)
+		// Check if file is empty
+		if len(strings.TrimSpace(string(data))) == 0 {
+			// File is empty, create new structure
+			llpkgStore = LLPkgStoreJSON{
+				Packages: make(map[string]PackageInfo),
+			}
+		} else {
+			// File has content, try to parse it
+			if err := json.Unmarshal(data, &llpkgStore); err != nil {
+				return fmt.Errorf("failed to parse existing llpkgstore.json: %v", err)
+			}
 		}
 	} else {
 		// File doesn't exist, create new structure
@@ -264,6 +289,30 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// findLLPkgPublicPath finds the path to llpkg/public/llpkgstore.json
+// It searches up the directory tree to find the llpkg repository root
+func findLLPkgPublicPath(currentDir string) string {
+	// Start from current directory and go up the tree
+	dir := currentDir
+	for {
+		// Check if we're in the llpkg repository root
+		publicPath := filepath.Join(dir, "public", "llpkgstore.json")
+		if _, err := os.Stat(publicPath); err == nil {
+			return publicPath
+		}
+
+		// Go up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root directory
+			break
+		}
+		dir = parent
+	}
+
+	return ""
 }
 
 // createGitTag creates a git tag for the specified version
