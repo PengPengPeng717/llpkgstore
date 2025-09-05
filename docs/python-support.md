@@ -13,8 +13,11 @@ llpkgstore v2.0+ provides full support for Python packages through integration w
 - ✅ **Module Depth Control**: Configurable extraction depth for nested modules
 - ✅ **Custom Module Names**: Support for custom Go module names
 - ✅ **Automatic Testing**: Demo code generation for verification
-- ✅ **Version Management**: Integrated with llpkgstore versioning system
-- ✅ **CI/CD Integration**: Full GitHub Actions support
+- ✅ **Unified Version Management**: Consistent version mapping with C/C++ packages
+- ✅ **Smart Version Extraction**: Automatic version extraction from commit messages
+- ✅ **Dual Version Recording**: Local and centralized version record files
+- ✅ **Automatic Git Tagging**: Auto-create and push Git tags based on versions
+- ✅ **CI/CD Integration**: Full GitHub Actions support with postprocessing
 
 ## Quick Start
 
@@ -198,6 +201,10 @@ func main() {
 
 ## Version Management
 
+### Unified Version Management (v2.0+)
+
+Python packages now use the same version management mechanism as C/C++ packages, providing a consistent experience across all package types.
+
 ### Commit Message Format
 
 Use this format for version releases:
@@ -210,22 +217,88 @@ Examples:
 ```bash
 git commit -m "Release-as: numpy/v1.26.4"
 git commit -m "Release-as: requests/v2.31.0"
+git commit -m "Release-as: tabulate/v10.0.0"
 ```
 
-### Version Tagging
+### Smart Version Extraction
+
+The system automatically extracts version information from:
+1. **Latest commit messages** (priority for CI environments)
+2. **Git tags** (fallback when commit messages don't contain version info)
+
+Supported formats:
+- `Release-as: package_name/vX.X.X`
+- `Release: vX.X.X`
+- `Version: vX.X.X`
+
+### Dual Version Recording
+
+The system maintains version information in two locations:
+
+#### Local Version Record
+File: `{package_dir}/llpkgstore.json`
+```json
+{
+  "packages": {
+    "tabulate": {
+      "versions": [
+        {
+          "python": "0.9.0",
+          "go": ["v8.0.0", "v9.0.0", "v10.0.0"]
+        }
+      ]
+    }
+  }
+}
+```
+
+#### Centralized Version Record
+File: `llpkg/public/llpkgstore.json`
+```json
+{
+  "packages": {
+    "tabulate": {
+      "versions": [
+        {
+          "python": "0.9.0",
+          "go": ["v0.0.2", "v10.0.0"]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Automatic Git Tagging
 
 The system automatically:
-- Extracts version from commit messages
-- Creates GitHub releases
-- Manages version tags
-- Updates version mapping
+- **Creates Git tags** based on extracted version information
+- **Pushes tags** to remote repository
+- **Checks for duplicates** to avoid tag conflicts
+- **Provides detailed logging** for tag operations
+
+### Postprocessing Command
+
+Use the postprocessing command to handle version management:
+
+```bash
+llpkgstore postprocessing
+```
+
+This command will:
+1. Extract version from commit messages or Git tags
+2. Update local `llpkgstore.json` with version mapping
+3. Update centralized `llpkg/public/llpkgstore.json`
+4. Create and push Git tags
+5. Create GitHub releases (in CI environment)
 
 ### Version Compatibility
 
-- Python versions are mapped to Go versions
-- Follows semantic versioning
+- Python versions are mapped to Go versions using unified format
+- Follows semantic versioning standards
 - Maintains backward compatibility
 - Supports multiple version branches
+- Provides conflict detection and resolution
 
 ## Best Practices
 
