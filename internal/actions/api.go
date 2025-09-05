@@ -471,7 +471,9 @@ func (d *DefaultClient) uploadArtifactsToRelease(release *github.RepositoryRelea
 	}
 
 	if artifacts.GetTotalCount() == 0 {
-		return nil, errors.New("actions: no artifact found")
+		// No artifacts found, return empty result instead of error
+		// This allows postprocessing to work even when artifacts are not available
+		return []*os.File{}, nil
 	}
 
 	errGroup, _ := errgroup.WithContext(context.TODO())
