@@ -9,34 +9,35 @@ import (
 	"strings"
 
 	"github.com/goplus/llpkgstore/config"
+	"github.com/goplus/llpkgstore/internal/actions"
 	"github.com/spf13/cobra"
 )
 
 var postProcessingCmd = &cobra.Command{
 	Use:   "postprocessing",
 	Short: "Process merged PR for Python packages",
-	Long:  `Process merged PR for Python packages with GitHub Release support`,
+	Long:  `Process merged PR for Python packages with unified version management`,
 	RunE:  runPythonPostProcessingCmd,
 }
 
-// LLPkgStoreJSON represents the structure of llpkgstore.json
+// LLPkgStoreJSON represents the structure of llpkgstore.json (C++ compatible)
 type LLPkgStoreJSON struct {
 	Packages map[string]PackageInfo `json:"packages"`
 }
 
-// PackageInfo represents package version information
+// PackageInfo represents package version information (C++ compatible)
 type PackageInfo struct {
 	Versions []VersionInfo `json:"versions"`
 }
 
-// VersionInfo represents version mapping
+// VersionInfo represents version mapping (C++ compatible)
 type VersionInfo struct {
 	Python string   `json:"python"`
 	Go     []string `json:"go"`
 }
 
 func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
-	fmt.Println("Starting Python package post-processing...")
+	fmt.Println("Starting Python package post-processing with unified version management...")
 
 	// Get current working directory
 	currentDir, err := os.Getwd()
@@ -64,59 +65,50 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	// Extract version from commit message using C++ compatible format
-	version, err := extractVersionFromCommit(currentDir)
+	// Use DefaultClient for unified version management (same as C++)
+	client, err := actions.NewDefaultClient()
 	if err != nil {
-		fmt.Printf("Warning: Failed to extract version from commit: %v\n", err)
-		fmt.Println("Falling back to default version v0.0.2")
-		version = "v0.0.2"
+		return fmt.Errorf("failed to create GitHub client: %v", err)
 	}
 
+	// Use the same postprocessing logic as C++ (unified version management)
+	fmt.Println("Using unified postprocessing logic (same as C++)...")
+	if err := client.Postprocessing(); err != nil {
+		return fmt.Errorf("failed to run postprocessing: %v", err)
+	}
+
+	// Additional Python-specific version record updates
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Update local llpkgstore.json with version mapping (similar to C++ version)
-	fmt.Println("Updating local llpkgstore.json with version mapping...")
-	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version, "llpkgstore.json"); err != nil {
+	// Update local llpkgstore.json with Python-specific version mapping
+	fmt.Println("Updating local llpkgstore.json with Python version mapping...")
+	if err := updateLLPkgStoreJSON(packageName, pythonVersion, "v0.0.1", "llpkgstore.json"); err != nil {
 		fmt.Printf("Warning: Failed to update local llpkgstore.json: %v\n", err)
-		fmt.Println("Continuing with GitHub Release creation...")
+		fmt.Println("Continuing...")
 	}
 
-	// Update llpkg/public/llpkgstore.json with version mapping
-	// Try to find the llpkg repository root directory
+	// Update llpkg/public/llpkgstore.json with Python-specific version mapping
 	llpkgPublicPath := findLLPkgPublicPath(currentDir)
 	if llpkgPublicPath != "" {
-		fmt.Printf("Updating %s with version mapping...\n", llpkgPublicPath)
-		if err := updateLLPkgStoreJSON(packageName, pythonVersion, version, llpkgPublicPath); err != nil {
+		fmt.Printf("Updating %s with Python version mapping...\n", llpkgPublicPath)
+		if err := updateLLPkgStoreJSON(packageName, pythonVersion, "v0.0.1", llpkgPublicPath); err != nil {
 			fmt.Printf("Warning: Failed to update %s: %v\n", llpkgPublicPath, err)
-			fmt.Println("Continuing with GitHub Release creation...")
+			fmt.Println("Continuing...")
 		}
 	} else {
 		fmt.Println("Warning: Could not find llpkg/public/llpkgstore.json, skipping update")
 	}
 
-	// Try to create GitHub Release if we're in a GitHub Actions environment
-	if err := createGitHubRelease(packageName, version, currentDir); err != nil {
-		fmt.Printf("Warning: Failed to create GitHub Release: %v\n", err)
-		fmt.Println("This is normal if not running in GitHub Actions or if release already exists")
-	}
-
-	// Create git tag for the version
-	if err := createGitTag(version, currentDir); err != nil {
-		fmt.Printf("Warning: Failed to create git tag: %v\n", err)
-		fmt.Println("Continuing without tag creation...")
-	}
-
 	fmt.Printf("Python package post-processing completed successfully\n")
 	fmt.Printf("Package: %s\n", packageName)
 	fmt.Printf("Python Version: %s\n", pythonVersion)
-	fmt.Printf("Go Version: %s\n", version)
-	fmt.Println("Note: This is a simplified post-processing process for Python packages")
+	fmt.Println("Note: Now using unified version management (same as C++)")
 
 	return nil
 }
 
-// createGitHubRelease attempts to create a GitHub Release for the package
+// createGitHubRelease attempts to create a GitHub Release for the package (legacy function)
 func createGitHubRelease(packageName, version, currentDir string) error {
 	fmt.Println("Starting GitHub Release creation...")
 

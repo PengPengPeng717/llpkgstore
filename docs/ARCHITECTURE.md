@@ -48,33 +48,45 @@ llpkgstore 是一个专为 [**LLGo**](https://github.com/goplus/llgo) 设计的�
 
 ### 架构演进
 
-llpkgstore v2.0+ 引入了统一的版本管理系统，解决了之前版本管理不一致的问题。
+llpkgstore v2.0+ 实现了完全统一的版本管理系统，C/C++ 和 Python 包现在使用相同的版本处理逻辑和接口。
 
 #### 修改前的问题
 
 - **C/C++ 包**: 使用 `actions.DefaultClient` 与复杂版本映射
-- **Python 包**: 独立的版本提取逻辑
+- **Python 包**: 独立的版本提取逻辑和实现
 - **不同模式**: 包类型间不一致的版本处理
 - **代码重复**: 相似操作的重复逻辑
 
 #### 统一解决方案
 
-##### 1. 共享版本提取模块
+##### 1. 共享 DefaultClient 接口
 
-**文件**: `cmd/llpkgstore/internal_python/version.go`
+**实现**: 所有包类型都使用 `actions.DefaultClient` 接口
 
 ```go
-// 集中化的版本提取函数
-func extractVersionFromCommit(currentDir string) (string, error)
-func extractVersionFromGitTag(currentDir string) (string, error)
-func isValidVersionFormat(version string) bool
-func parseVersionFromCommitMessage(message string) (string, error)
+// Python 和 C/C++ 包都使用相同的接口
+client, err := actions.NewDefaultClient()
+if err != nil {
+    return fmt.Errorf("failed to create GitHub client: %v", err)
+}
+
+// 统一的版本提取
+version, err := client.MappedVersion()
+if err != nil {
+    return fmt.Errorf("failed to extract version: %v", err)
+}
+
+// 统一的后处理
+if err := client.Postprocessing(); err != nil {
+    return fmt.Errorf("failed to run postprocessing: %v", err)
+}
 ```
 
 **特性**:
-- **基于优先级的提取**: 提交消息优先，然后 Git 标签
-- **多格式支持**: `Release-as:`、`Release:`、`Version:`
-- **CI 优化**: 为 CI 环境优先处理最新提交消息
+- **完全统一**: Python 和 C/C++ 包使用相同的版本处理逻辑
+- **共享接口**: 所有包类型都使用 `DefaultClient` 接口
+- **一致的后处理**: 相同的 GitHub Release 创建和 Git 标签管理
+- **兼容的版本记录**: 统一的版本记录格式和更新机制
 - **回退机制**: 当提交消息不包含版本信息时自动回退到 Git 标签
 
 ##### 2. 增强的后处理逻辑
