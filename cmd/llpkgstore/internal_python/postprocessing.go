@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/goplus/llpkgstore/config"
 	"github.com/goplus/llpkgstore/internal/actions"
 	"github.com/spf13/cobra"
 )
@@ -39,32 +38,6 @@ type VersionInfo struct {
 func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	fmt.Println("Starting Python package post-processing with unified version management...")
 
-	// Get current working directory
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current directory: %v", err)
-	}
-
-	// Check if llpkg.cfg exists and parse it
-	cfgPath := filepath.Join(currentDir, "llpkg.cfg")
-	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		return fmt.Errorf("llpkg.cfg not found in current directory")
-	}
-
-	cfg, err := config.ParseLLPkgConfig(cfgPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse llpkg.cfg: %v", err)
-	}
-
-	// Check for generated Python package files
-	requiredFiles := []string{"go.mod", "go.sum"}
-	for _, file := range requiredFiles {
-		filePath := filepath.Join(currentDir, file)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			return fmt.Errorf("required file not found: %s", file)
-		}
-	}
-
 	// Use DefaultClient for unified version management (same as C++)
 	client, err := actions.NewDefaultClient()
 	if err != nil {
@@ -77,25 +50,7 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to run postprocessing: %v", err)
 	}
 
-	// Additional Python-specific version record updates
-	pythonVersion := cfg.Upstream.Package.Version
-	packageName := cfg.Upstream.Package.Name
-
-	// Update llpkg/public/llpkgstore.json with Python-specific version mapping
-	llpkgPublicPath := findLLPkgPublicPath(currentDir)
-	if llpkgPublicPath != "" {
-		fmt.Printf("Updating %s with Python version mapping...\n", llpkgPublicPath)
-		if err := updateLLPkgStoreJSON(packageName, pythonVersion, "v0.0.1", llpkgPublicPath); err != nil {
-			fmt.Printf("Warning: Failed to update %s: %v\n", llpkgPublicPath, err)
-			fmt.Println("Continuing...")
-		}
-	} else {
-		fmt.Println("Warning: Could not find llpkg/public/llpkgstore.json, skipping update")
-	}
-
 	fmt.Printf("Python package post-processing completed successfully\n")
-	fmt.Printf("Package: %s\n", packageName)
-	fmt.Printf("Python Version: %s\n", pythonVersion)
 	fmt.Println("Note: Now using unified version management (same as C++)")
 
 	return nil
