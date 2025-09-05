@@ -43,8 +43,16 @@ func detectPackageType(dir string) (string, error) {
 
 // findLLPkgConfigDir finds the directory containing llpkg.cfg
 func findLLPkgConfigDir() (string, error) {
-	// Check if there are directory paths in command line arguments
+	// Check if this is a postprocessing command - skip config file check
 	args := os.Args[1:]
+	for _, arg := range args {
+		if arg == "postprocessing" {
+			// For postprocessing, let the command handle config file discovery
+			return "", nil
+		}
+	}
+
+	// Check if there are directory paths in command line arguments
 	for _, arg := range args {
 		// Skip flag arguments
 		if arg[0] == '-' {
