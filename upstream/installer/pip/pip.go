@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/goplus/llpkgstore/internal/cmdbuilder"
@@ -45,25 +46,40 @@ func (p *pipInstaller) options() []string {
 // Install executes pip installation for the specified package into the output directory.
 // It generates a pip install command with required options.
 func (p *pipInstaller) Install(pkg upstream.Package, outputDir string) ([]string, error) {
-	// Build the following command
-	// pip3 install --target=%s %s==%s
-	builder := cmdbuilder.NewCmdBuilder(cmdbuilder.WithPipSerializer())
+	fmt.Printf("Installing Python package: %s==%s to %s\n", pkg.Name, pkg.Version, outputDir)
 
-	builder.SetName("pip3")
-	builder.SetSubcommand("install")
-	builder.SetArg("target", outputDir)
-	builder.SetObj(pkg.Name + "==" + pkg.Version)
-
-	for _, opt := range p.options() {
-		builder.SetArg("options", opt)
+	// 检查输出目录是否存在，如果不存在则创建
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create output directory %s: %v", outputDir, err)
 	}
 
-	buildCmd := builder.Cmd()
+	// Build the following command
+	// pip3 install --target=%s --no-deps --no-cache-dir %s==%s
+	args := []string{"install", "--target", outputDir}
+
+	// 添加额外的 pip 选项
+	for _, opt := range p.options() {
+		args = append(args, opt)
+	}
+
+	// 添加一些常用的 pip 选项以提高稳定性
+	args = append(args, "--no-deps")      // 暂时不安装依赖，避免版本冲突
+	args = append(args, "--no-cache-dir") // 不使用缓存，确保获取最新版本
+
+	// 添加包名和版本
+	args = append(args, pkg.Name+"=="+pkg.Version)
+
+	buildCmd := exec.Command("pip3", args...)
 	buildCmd.Stderr = os.Stderr
+
+	fmt.Printf("Executing pip install command...\n")
 	ret, err := buildCmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("pip install failed: %v, output: %s", err, string(ret))
+		return nil, fmt.Errorf("pip install failed for package %s==%s: %v, output: %s",
+			pkg.Name, pkg.Version, err, string(ret))
 	}
+
+	fmt.Printf("Successfully installed Python package: %s==%s\n", pkg.Name, pkg.Version)
 
 	// For Python packages, we return the package name as the "config file"
 	// since Python doesn't use pkg-config files like C/C++
@@ -105,6 +121,8 @@ func (p *pipInstaller) Search(pkg upstream.Package) ([]string, error) {
 // Dependency retrieves the dependencies of a package using pip show command.
 // It parses the package information to extract required packages and their versions.
 func (p *pipInstaller) Dependency(pkg upstream.Package) (dependencies []upstream.Package, err error) {
+	fmt.Printf("Retrieving dependencies for package: %s\n", pkg.Name)
+
 	// pip3 show %s
 	builder := cmdbuilder.NewCmdBuilder(cmdbuilder.WithPipSerializer())
 
@@ -119,28 +137,58 @@ func (p *pipInstaller) Dependency(pkg upstream.Package) (dependencies []upstream
 
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("pip show failed: %v, error: %s", err, pipError.String())
+		return nil, fmt.Errorf("pip show failed for package %s: %v, error: %s",
+			pkg.Name, err, pipError.String())
 	}
 
 	// Parse pip show output to extract dependencies
-	// This is a simplified implementation - in practice, you might want to use
-	// pip list --format=json or similar for better parsing
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "Requires:") {
 			requires := strings.TrimSpace(strings.TrimPrefix(line, "Requires:"))
-			if requires != "" {
+			if requires != "" && requires != "None" {
 				deps := strings.Split(requires, ",")
 				for _, dep := range deps {
 					dep = strings.TrimSpace(dep)
 					if dep != "" {
 						// Parse dependency name and version
-						parts := strings.Split(dep, " ")
-						if len(parts) >= 1 {
+						// Handle formats like "numpy>=1.20.0", "requests==2.31.0", "pandas"
+						var depName, depVersion string
+
+						// Check for version specifiers
+						if strings.Contains(dep, ">=") {
+							parts := strings.Split(dep, ">=")
+							depName = strings.TrimSpace(parts[0])
+							depVersion = strings.TrimSpace(parts[1])
+						} else if strings.Contains(dep, "==") {
+							parts := strings.Split(dep, "==")
+							depName = strings.TrimSpace(parts[0])
+							depVersion = strings.TrimSpace(parts[1])
+						} else if strings.Contains(dep, ">") {
+							parts := strings.Split(dep, ">")
+							depName = strings.TrimSpace(parts[0])
+							depVersion = strings.TrimSpace(parts[1])
+						} else if strings.Contains(dep, "<=") {
+							parts := strings.Split(dep, "<=")
+							depName = strings.TrimSpace(parts[0])
+							depVersion = strings.TrimSpace(parts[1])
+						} else if strings.Contains(dep, "<") {
+							parts := strings.Split(dep, "<")
+							depName = strings.TrimSpace(parts[0])
+							depVersion = strings.TrimSpace(parts[1])
+						} else {
+							// No version specifier, just package name
+							depName = dep
+							depVersion = ""
+						}
+
+						if depName != "" {
 							dependencies = append(dependencies, upstream.Package{
-								Name:    parts[0],
-								Version: "", // Version info might be in a different format
+								Name:    depName,
+								Version: depVersion,
 							})
+							fmt.Printf("Found dependency: %s (version: %s)\n", depName, depVersion)
 						}
 					}
 				}
@@ -149,5 +197,6 @@ func (p *pipInstaller) Dependency(pkg upstream.Package) (dependencies []upstream
 		}
 	}
 
+	fmt.Printf("Total dependencies found: %d\n", len(dependencies))
 	return dependencies, nil
 }

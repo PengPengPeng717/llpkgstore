@@ -2,6 +2,8 @@ package config
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/goplus/llpkgstore/upstream"
 	"github.com/goplus/llpkgstore/upstream/installer/conan"
@@ -32,6 +34,68 @@ func (l *LlpygConfig) Validate() error {
 	if l.ModDepth > 10 {
 		return errors.New("mod_depth should not exceed 10 for performance reasons")
 	}
+
+	// 验证输出目录路径
+	if l.OutputDir != "" {
+		if err := validateOutputDir(l.OutputDir); err != nil {
+			return fmt.Errorf("invalid output_dir: %v", err)
+		}
+	}
+
+	// 验证模块名
+	if l.ModName != "" {
+		if err := validateModuleName(l.ModName); err != nil {
+			return fmt.Errorf("invalid mod_name: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// validateOutputDir validates the output directory path
+func validateOutputDir(outputDir string) error {
+	// 检查路径是否包含非法字符
+	illegalChars := []string{"..", "~", "\\", ":", "*", "?", "\"", "<", ">", "|"}
+	for _, char := range illegalChars {
+		if strings.Contains(outputDir, char) {
+			return fmt.Errorf("output directory contains illegal character: %s", char)
+		}
+	}
+
+	// 检查路径长度
+	if len(outputDir) > 255 {
+		return errors.New("output directory path too long")
+	}
+
+	return nil
+}
+
+// validateModuleName validates the Go module name
+func validateModuleName(modName string) error {
+	// 检查模块名格式
+	if !strings.Contains(modName, "/") {
+		return errors.New("module name should contain at least one slash")
+	}
+
+	// 检查是否以 github.com 或其他有效域名开头
+	validPrefixes := []string{"github.com", "gitlab.com", "gitee.com", "bitbucket.org"}
+	hasValidPrefix := false
+	for _, prefix := range validPrefixes {
+		if strings.HasPrefix(modName, prefix+"/") {
+			hasValidPrefix = true
+			break
+		}
+	}
+
+	if !hasValidPrefix {
+		return fmt.Errorf("module name should start with a valid domain (e.g., github.com)")
+	}
+
+	// 检查模块名长度
+	if len(modName) > 200 {
+		return errors.New("module name too long")
+	}
+
 	return nil
 }
 
@@ -49,6 +113,14 @@ func (l *LlpygConfig) GetDefaultOutputDir() string {
 		return "./test" // 默认输出目录
 	}
 	return l.OutputDir
+}
+
+// GetDefaultModName returns the default module name if not specified
+func (l *LlpygConfig) GetDefaultModName() string {
+	if l.ModName == "" {
+		return "" // 默认使用包名
+	}
+	return l.ModName
 }
 
 // UpstreamConfig defines the upstream configuration containing installer settings and package metadata.

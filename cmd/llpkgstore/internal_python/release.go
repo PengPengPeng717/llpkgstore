@@ -39,20 +39,25 @@ func runPythonReleaseCmd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to parse llpkg.cfg: %v", err)
 	}
 
-	// Direct version mapping: Python version -> Go version
-	// e.g., numpy@1.26.4 -> v1.26.4
+	// Extract version from commit message using C++ compatible format
+	version, err := extractVersionFromCommit(currentDir)
+	if err != nil {
+		fmt.Printf("Warning: Failed to extract version from commit: %v\n", err)
+		// Fallback to direct mapping: Python version -> Go version
+		pythonVersion := cfg.Upstream.Package.Version
+		if pythonVersion == "" {
+			return fmt.Errorf("package version not found in llpkg.cfg")
+		}
+		version = pythonVersion
+		if !strings.HasPrefix(version, "v") {
+			version = "v" + version
+		}
+		fmt.Printf("Using fallback version mapping: %s -> %s\n", pythonVersion, version)
+	}
+
 	pythonVersion := cfg.Upstream.Package.Version
-	if pythonVersion == "" {
-		return fmt.Errorf("package version not found in llpkg.cfg")
-	}
 
-	// Ensure version starts with 'v' for Go compatibility
-	goVersion := pythonVersion
-	if !strings.HasPrefix(goVersion, "v") {
-		goVersion = "v" + goVersion
-	}
-
-	fmt.Printf("Starting Python package release with version: %s (mapped from Python version: %s)\n", goVersion, pythonVersion)
+	fmt.Printf("Starting Python package release with version: %s (mapped from Python version: %s)\n", version, pythonVersion)
 
 	// Check if generated files exist
 	generatedFiles := []string{"go.mod", "go.sum"}
@@ -65,7 +70,7 @@ func runPythonReleaseCmd(_ *cobra.Command, _ []string) error {
 
 	// Create artifact tar.gz with key files (*.go, go.mod, go.sum, llpyg.cfg, llpkg.cfg)
 	base := filepath.Base(currentDir)
-	artifactName := fmt.Sprintf("%s-%s.tar.gz", base, goVersion)
+	artifactName := fmt.Sprintf("%s-%s.tar.gz", base, version)
 	artifactPath := filepath.Join(currentDir, artifactName)
 
 	if err := createTarGz(artifactPath, currentDir, func(rel string) bool {
@@ -96,8 +101,8 @@ func runPythonReleaseCmd(_ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	fmt.Printf("Python package release completed successfully with version: %s\n", goVersion)
-	fmt.Printf("Note: This is a simplified release process for Python packages (%s@%s -> %s)\n", cfg.Upstream.Package.Name, pythonVersion, goVersion)
+	fmt.Printf("Python package release completed successfully with version: %s\n", version)
+	fmt.Printf("Note: This is a simplified release process for Python packages (%s@%s -> %s)\n", cfg.Upstream.Package.Name, pythonVersion, version)
 
 	return nil
 }
