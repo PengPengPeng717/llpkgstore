@@ -81,13 +81,6 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Update local llpkgstore.json with Python-specific version mapping
-	fmt.Println("Updating local llpkgstore.json with Python version mapping...")
-	if err := updateLLPkgStoreJSON(packageName, pythonVersion, "v0.0.1", "llpkgstore.json"); err != nil {
-		fmt.Printf("Warning: Failed to update local llpkgstore.json: %v\n", err)
-		fmt.Println("Continuing...")
-	}
-
 	// Update llpkg/public/llpkgstore.json with Python-specific version mapping
 	llpkgPublicPath := findLLPkgPublicPath(currentDir)
 	if llpkgPublicPath != "" {
