@@ -12,6 +12,15 @@ import (
 
 // detectPackageType detects the package type in the current directory or specified directory
 func detectPackageType(dir string) (string, error) {
+	// Check if this is a postprocessing command - skip config file check
+	args := os.Args[1:]
+	for _, arg := range args {
+		if arg == "postprocessing" {
+			// For postprocessing, return a default type and let the command handle it
+			return "python", nil
+		}
+	}
+
 	// If no directory is specified, use the current directory
 	if dir == "" {
 		var err error
