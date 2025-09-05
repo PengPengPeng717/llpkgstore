@@ -108,9 +108,11 @@ func (l *llpygGenerator) copyConfigFileTo(path string) error {
 }
 
 func (l *llpygGenerator) Generate(toDir string) error {
+	fmt.Printf("Starting llpyg generation for package: %s\n", l.packageName)
+
 	path, err := filepath.Abs(toDir)
 	if err != nil {
-		return errors.Join(ErrLLPygGenerate, err)
+		return errors.Join(ErrLLPygGenerate, fmt.Errorf("failed to get absolute path: %v", err))
 	}
 
 	// 读取 llpkg.cfg 配置
@@ -126,25 +128,45 @@ func (l *llpygGenerator) Generate(toDir string) error {
 		return errors.Join(ErrLLPygGenerate, fmt.Errorf("invalid llpyg config: %v", err))
 	}
 
+	fmt.Printf("Configuration validated successfully\n")
+	fmt.Printf("Output directory: %s\n", l.getOutputDir())
+	fmt.Printf("Module name: %s\n", l.llpkgConfig.Llpyg.GetDefaultModName())
+	fmt.Printf("Module depth: %d\n", l.llpkgConfig.Llpyg.GetDefaultModDepth())
+
 	// Create a temporary directory for llpyg to work in
-	tempWorkDir, err := os.MkdirTemp("", "llpyg-work")
+	tempWorkDir, err := os.MkdirTemp("", "llpyg-work-*")
 	if err != nil {
-		return errors.Join(ErrLLPygGenerate, err)
+		return errors.Join(ErrLLPygGenerate, fmt.Errorf("failed to create temporary directory: %v", err))
 	}
-	defer os.RemoveAll(tempWorkDir)
+	defer func() {
+		if err := os.RemoveAll(tempWorkDir); err != nil {
+			fmt.Printf("Warning: failed to clean up temporary directory %s: %v\n", tempWorkDir, err)
+		}
+	}()
+
+	fmt.Printf("Created temporary working directory: %s\n", tempWorkDir)
 
 	// 构建 llpyg 命令参数
 	args := l.buildLlpygArgs()
+	fmt.Printf("Executing llpyg with args: %v\n", args)
+
 	cmd := exec.Command("llpyg", args...)
 	cmd.Dir = tempWorkDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// llpyg may exit with an error, which may be caused by Stderr.
-	// To avoid that case, we have to check its exit code.
-	if err := cmd.Run(); err != nil {
-		return errors.Join(ErrLLPygGenerate, err)
+	// 设置 Python 环境变量，确保 llpyg 能找到安装的包
+	if l.pythonDir != "" {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("PYTHONPATH=%s", l.pythonDir))
+		fmt.Printf("Setting PYTHONPATH to: %s\n", l.pythonDir)
 	}
+
+	// 执行 llpyg 命令
+	if err := cmd.Run(); err != nil {
+		return errors.Join(ErrLLPygGenerate, fmt.Errorf("llpyg execution failed: %v", err))
+	}
+
+	fmt.Printf("llpyg execution completed successfully\n")
 
 	// 根据配置的输出目录确定生成文件的位置
 	outputDir := l.getOutputDir()
@@ -153,18 +175,24 @@ func (l *llpygGenerator) Generate(toDir string) error {
 		// Try alternative path
 		generatedPath = filepath.Join(tempWorkDir, l.packageName)
 		if _, err := os.Stat(generatedPath); os.IsNotExist(err) {
-			return errors.Join(ErrLLPygCheck, errors.New("generate fail"))
+			return errors.Join(ErrLLPygCheck, fmt.Errorf("generated files not found in expected locations: %s or %s",
+				filepath.Join(tempWorkDir, outputDir, l.packageName),
+				filepath.Join(tempWorkDir, l.packageName)))
 		}
 	}
+
+	fmt.Printf("Found generated files at: %s\n", generatedPath)
 
 	// Copy the generated files to the target directory
 	// For Python packages, we want to copy the contents of the generated directory
 	// to the target directory, not the directory itself
+	fmt.Printf("Copying generated files to target directory: %s\n", path)
 	err = file.CopyFS(path, os.DirFS(generatedPath), true)
 	if err != nil {
-		return errors.Join(ErrLLPygGenerate, err)
+		return errors.Join(ErrLLPygGenerate, fmt.Errorf("failed to copy generated files: %v", err))
 	}
 
+	fmt.Printf("Successfully generated Go bindings for package: %s\n", l.packageName)
 	return nil
 }
 

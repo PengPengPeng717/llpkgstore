@@ -68,18 +68,47 @@ func findLLPkgConfigDir() (string, error) {
 }
 
 func main() {
+	// Check if help flag is provided
+	if len(os.Args) > 1 && (os.Args[1] == "--help" || os.Args[1] == "-h") {
+		// Show help for Python version by default
+		fmt.Println("llpkgstore - Package management tool for Python and C/C++ packages")
+		fmt.Println("")
+		fmt.Println("Usage:")
+		fmt.Println("  llpkgstore [command] [flags]")
+		fmt.Println("")
+		fmt.Println("Commands:")
+		fmt.Println("  generate      Generate Go bindings for Python packages")
+		fmt.Println("  verification  Verify generated packages")
+		fmt.Println("  postprocessing Process merged PR for Python packages")
+		fmt.Println("  release       Build and upload Python binary packages")
+		fmt.Println("  install       Install Python packages")
+		fmt.Println("  test          Test Python verification functionality")
+		fmt.Println("")
+		fmt.Println("Flags:")
+		fmt.Println("  -h, --help    Show this help message")
+		fmt.Println("")
+		fmt.Println("Examples:")
+		fmt.Println("  llpkgstore generate")
+		fmt.Println("  llpkgstore verification")
+		fmt.Println("  llpkgstore postprocessing")
+		return
+	}
+
 	// Find directory containing llpkg.cfg
 	configDir, err := findLLPkgConfigDir()
 	if err != nil {
-		// If configuration file not found, default to Python version (for backward compatibility)
-		fmt.Printf("Warning: %v\n", err)
+		// If configuration file not found, show help and exit
+		fmt.Printf("Error: %v\n", err)
+		fmt.Println("")
+		fmt.Println("Please ensure you are in a directory containing llpkg.cfg file.")
+		fmt.Println("Use 'llpkgstore --help' for more information.")
 		return
 	}
 
 	// Detect package type
 	packageType, err := detectPackageType(configDir)
 	if err != nil {
-		fmt.Printf("Warning: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return
 	}
 

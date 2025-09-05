@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/goplus/llpkgstore/config"
@@ -65,7 +64,7 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	// Extract version from commit message
+	// Extract version from commit message using C++ compatible format
 	version, err := extractVersionFromCommit(currentDir)
 	if err != nil {
 		fmt.Printf("Warning: Failed to extract version from commit: %v\n", err)
@@ -76,13 +75,23 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	pythonVersion := cfg.Upstream.Package.Version
 	packageName := cfg.Upstream.Package.Name
 
-	// Skip llpkgstore.json update for now - focus only on GitHub Release
-	fmt.Println("Skipping llpkgstore.json update - focusing on GitHub Release creation")
+	// Update llpkgstore.json with version mapping (similar to C++ version)
+	fmt.Println("Updating llpkgstore.json with version mapping...")
+	if err := updateLLPkgStoreJSON(packageName, pythonVersion, version); err != nil {
+		fmt.Printf("Warning: Failed to update llpkgstore.json: %v\n", err)
+		fmt.Println("Continuing with GitHub Release creation...")
+	}
 
 	// Try to create GitHub Release if we're in a GitHub Actions environment
 	if err := createGitHubRelease(packageName, version, currentDir); err != nil {
 		fmt.Printf("Warning: Failed to create GitHub Release: %v\n", err)
 		fmt.Println("This is normal if not running in GitHub Actions or if release already exists")
+	}
+
+	// Create git tag for the version
+	if err := createGitTag(version, currentDir); err != nil {
+		fmt.Printf("Warning: Failed to create git tag: %v\n", err)
+		fmt.Println("Continuing without tag creation...")
 	}
 
 	fmt.Printf("Python package post-processing completed successfully\n")
@@ -94,106 +103,14 @@ func runPythonPostProcessingCmd(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-// extractVersionFromCommit extracts version from the latest commit message
-func extractVersionFromCommit(currentDir string) (string, error) {
-	fmt.Println("Extracting version from commit message...")
-
-	// 首先尝试从当前分支获取
-	cmd := exec.Command("git", "log", "-5", "--pretty=format:%s")
-	cmd.Dir = currentDir
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get commit messages: %v", err)
-	}
-
-	commitMessages := strings.Split(strings.TrimSpace(string(output)), "\n")
-	fmt.Printf("Recent commit messages from current branch: %v\n", commitMessages)
-
-	// 如果当前分支没有找到版本信息，尝试从 main 分支获取
-	for _, commitMessage := range commitMessages {
-		commitMessage = strings.TrimSpace(commitMessage)
-		if commitMessage == "" {
-			continue
-		}
-
-		// 跳过自动生成的 commit 消息
-		if strings.Contains(commitMessage, "Update llpkgstore.json") {
-			continue
-		}
-
-		// 尝试解析版本
-		version, err := parseVersionFromCommitMessage(commitMessage)
-		if err == nil {
-			fmt.Printf("Found version in commit message: %s -> %s\n", commitMessage, version)
-			return version, nil
-		}
-	}
-
-	// 如果当前分支没有找到，尝试从 main 分支获取
-	fmt.Println("No version found in current branch, trying main branch...")
-	cmd = exec.Command("git", "log", "origin/main", "-5", "--pretty=format:%s")
-	cmd.Dir = currentDir
-	output, err = cmd.Output()
-	if err != nil {
-		fmt.Printf("Warning: failed to get commit messages from main branch: %v\n", err)
-		return "", fmt.Errorf("no version pattern found in recent commit messages")
-	}
-
-	commitMessages = strings.Split(strings.TrimSpace(string(output)), "\n")
-	fmt.Printf("Recent commit messages from main branch: %v\n", commitMessages)
-
-	for _, commitMessage := range commitMessages {
-		commitMessage = strings.TrimSpace(commitMessage)
-		if commitMessage == "" {
-			continue
-		}
-
-		// 跳过自动生成的 commit 消息
-		if strings.Contains(commitMessage, "Update llpkgstore.json") {
-			continue
-		}
-
-		// 尝试解析版本
-		version, err := parseVersionFromCommitMessage(commitMessage)
-		if err == nil {
-			fmt.Printf("Found version in main branch commit message: %s -> %s\n", commitMessage, version)
-			return version, nil
-		}
-	}
-
-	return "", fmt.Errorf("no version pattern found in recent commit messages")
-}
-
-// parseVersionFromCommitMessage parses version from commit message
-func parseVersionFromCommitMessage(commitMessage string) (string, error) {
-	// Define regex patterns for different formats
-	patterns := []string{
-		`Release-as:\s*[^/]+/(v[\d.]+)`, // "Release-as: numpy/v1.26.4"
-		`Release-as:\s*(v[\d.]+)`,       // "Release-as: v1.26.4"
-		`Release:\s*[^/]+/(v[\d.]+)`,    // "Release: numpy/v1.26.4"
-		`Release:\s*(v[\d.]+)`,          // "Release: v1.26.4"
-		`Version:\s*(v[\d.]+)`,          // "Version: v1.26.4"
-		`version:\s*(v[\d.]+)`,          // "version: v1.26.4"
-	}
-
-	for _, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-		matches := re.FindStringSubmatch(commitMessage)
-		if len(matches) > 1 {
-			return matches[1], nil
-		}
-	}
-
-	return "", fmt.Errorf("no version pattern found in commit message: %s", commitMessage)
-}
-
 // createGitHubRelease attempts to create a GitHub Release for the package
 func createGitHubRelease(packageName, version, currentDir string) error {
 	fmt.Println("Starting GitHub Release creation...")
 
 	// Check if we're in a GitHub Actions environment
 	if os.Getenv("GITHUB_ACTIONS") != "true" {
-		return fmt.Errorf("not running in GitHub Actions environment")
+		fmt.Println("Not running in GitHub Actions environment, skipping GitHub Release creation")
+		return nil // 非 GitHub Actions 环境不报错，只是跳过
 	}
 
 	// Check if GitHub CLI is available
@@ -207,6 +124,11 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 		return fmt.Errorf("GITHUB_REPOSITORY environment variable is not set")
 	}
 
+	// Check if GITHUB_TOKEN is set
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		return fmt.Errorf("GITHUB_TOKEN environment variable is not set")
+	}
+
 	fmt.Printf("Repository: %s\n", repo)
 	fmt.Printf("Package: %s\n", packageName)
 	fmt.Printf("Version: %s\n", version)
@@ -218,46 +140,47 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 	// Use GitHub CLI to create the release
 	// First check if release already exists
 	fmt.Println("Checking if release already exists...")
-	checkCmd := fmt.Sprintf("gh release view %s --repo %s >/dev/null 2>&1", releaseTag, repo)
-	if err := exec.Command("bash", "-c", checkCmd).Run(); err == nil {
-		fmt.Printf("Release %s already exists, deleting existing release...\n", releaseTag)
+	checkCmd := exec.Command("gh", "release", "view", releaseTag, "--repo", repo)
+	checkCmd.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
 
-		// Delete the existing release
-		deleteCmd := fmt.Sprintf("gh release delete %s --repo %s --yes", releaseTag, repo)
-		fmt.Printf("Executing delete command: %s\n", deleteCmd)
+	if err := checkCmd.Run(); err == nil {
+		fmt.Printf("Release %s already exists, updating existing release...\n", releaseTag)
 
-		deleteCmdExec := exec.Command("bash", "-c", deleteCmd)
-		deleteCmdExec.Stdout = os.Stdout
-		deleteCmdExec.Stderr = os.Stderr
-		deleteCmdExec.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
+		// Update the existing release instead of deleting
+		updateCmd := exec.Command("gh", "release", "edit", releaseTag,
+			"--title", fmt.Sprintf("Release %s %s", packageName, version),
+			"--notes", fmt.Sprintf("Automated release for %s version %s", packageName, version),
+			"--repo", repo)
+		updateCmd.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
+		updateCmd.Stdout = os.Stdout
+		updateCmd.Stderr = os.Stderr
 
-		if err := deleteCmdExec.Run(); err != nil {
-			return fmt.Errorf("failed to delete existing GitHub release: %v", err)
+		if err := updateCmd.Run(); err != nil {
+			return fmt.Errorf("failed to update existing GitHub release: %v", err)
 		}
 
-		fmt.Printf("Successfully deleted existing release: %s\n", releaseTag)
+		fmt.Printf("Successfully updated GitHub Release: %s\n", releaseTag)
 	} else {
-		fmt.Println("Release does not exist, will create new release...")
+		fmt.Println("Release does not exist, creating new release...")
+
+		// Create the release using GitHub CLI
+		createCmd := exec.Command("gh", "release", "create", releaseTag,
+			"--title", fmt.Sprintf("Release %s %s", packageName, version),
+			"--notes", fmt.Sprintf("Automated release for %s version %s", packageName, version),
+			"--repo", repo,
+			"--draft=false",
+			"--prerelease=false")
+		createCmd.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
+		createCmd.Stdout = os.Stdout
+		createCmd.Stderr = os.Stderr
+
+		if err := createCmd.Run(); err != nil {
+			return fmt.Errorf("failed to create GitHub release: %v", err)
+		}
+
+		fmt.Printf("Successfully created GitHub Release: %s\n", releaseTag)
 	}
 
-	fmt.Println("Creating new release...")
-
-	// Create the release using GitHub CLI
-	createCmd := fmt.Sprintf("gh release create %s --title 'Release %s %s' --notes 'Automated release for %s version %s' --repo %s --draft=false --prerelease=false",
-		releaseTag, packageName, version, packageName, version, repo)
-
-	fmt.Printf("Executing command: %s\n", createCmd)
-
-	cmd := exec.Command("bash", "-c", createCmd)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), "GITHUB_TOKEN="+os.Getenv("GITHUB_TOKEN"))
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to create GitHub release: %v", err)
-	}
-
-	fmt.Printf("Successfully created GitHub Release: %s\n", releaseTag)
 	fmt.Printf("Package %s version %s is now available via: llgo get github.com/%s/%s@%s\n",
 		packageName, version, repo, packageName, version)
 
@@ -265,6 +188,7 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 }
 
 // updateLLPkgStoreJSON updates the llpkgstore.json file with new package information
+// Uses C++ compatible format for version mapping
 func updateLLPkgStoreJSON(packageName, pythonVersion, goVersion string) error {
 	jsonPath := "llpkgstore.json"
 
@@ -340,6 +264,53 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// createGitTag creates a git tag for the specified version
+func createGitTag(version, currentDir string) error {
+	fmt.Printf("Creating git tag: %s\n", version)
+
+	// Check if tag already exists
+	cmd := exec.Command("git", "tag", "-l", version)
+	cmd.Dir = currentDir
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to check existing tags: %v", err)
+	}
+
+	if strings.TrimSpace(string(output)) == version {
+		fmt.Printf("Tag %s already exists, skipping creation\n", version)
+		return nil
+	}
+
+	// Create the tag
+	cmd = exec.Command("git", "tag", "-a", version, "-m", fmt.Sprintf("Release %s", version))
+	cmd.Dir = currentDir
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create git tag %s: %v", version, err)
+	}
+
+	fmt.Printf("Successfully created git tag: %s\n", version)
+
+	// Try to push the tag to remote (only if we're in a git repository with remote)
+	cmd = exec.Command("git", "remote", "-v")
+	cmd.Dir = currentDir
+	output, err = cmd.Output()
+	if err == nil && strings.TrimSpace(string(output)) != "" {
+		fmt.Printf("Pushing tag %s to remote repository...\n", version)
+		cmd = exec.Command("git", "push", "origin", version)
+		cmd.Dir = currentDir
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Warning: Failed to push tag to remote: %v\n", err)
+			fmt.Println("Tag created locally but not pushed to remote")
+		} else {
+			fmt.Printf("Successfully pushed tag %s to remote repository\n", version)
+		}
+	} else {
+		fmt.Println("No remote repository found, tag created locally only")
+	}
+
+	return nil
 }
 
 func init() {
