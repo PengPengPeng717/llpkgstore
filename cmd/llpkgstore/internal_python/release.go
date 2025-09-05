@@ -7,16 +7,16 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/goplus/llpkgstore/config"
+	"github.com/goplus/llpkgstore/internal/actions"
 	"github.com/spf13/cobra"
 )
 
 var releaseCmd = &cobra.Command{
 	Use:   "release",
 	Short: "Build and upload Python binary packages",
-	Long:  `Build and upload Python binary packages with simplified version handling`,
+	Long:  `Build and upload Python binary packages with unified version management`,
 	RunE:  runPythonReleaseCmd,
 }
 
@@ -39,70 +39,24 @@ func runPythonReleaseCmd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to parse llpkg.cfg: %v", err)
 	}
 
-	// Extract version from commit message using C++ compatible format
-	version, err := extractVersionFromCommit(currentDir)
+	// Use DefaultClient for unified version management (same as C++)
+	client, err := actions.NewDefaultClient()
 	if err != nil {
-		fmt.Printf("Warning: Failed to extract version from commit: %v\n", err)
-		// Fallback to direct mapping: Python version -> Go version
-		pythonVersion := cfg.Upstream.Package.Version
-		if pythonVersion == "" {
-			return fmt.Errorf("package version not found in llpkg.cfg")
-		}
-		version = pythonVersion
-		if !strings.HasPrefix(version, "v") {
-			version = "v" + version
-		}
-		fmt.Printf("Using fallback version mapping: %s -> %s\n", pythonVersion, version)
+		return fmt.Errorf("failed to create GitHub client: %v", err)
+	}
+
+	// Use the same release logic as C++ (unified version management)
+	fmt.Println("Using unified release logic (same as C++)...")
+	if err := client.Release(); err != nil {
+		return fmt.Errorf("failed to run release: %v", err)
 	}
 
 	pythonVersion := cfg.Upstream.Package.Version
+	packageName := cfg.Upstream.Package.Name
 
-	fmt.Printf("Starting Python package release with version: %s (mapped from Python version: %s)\n", version, pythonVersion)
-
-	// Check if generated files exist
-	generatedFiles := []string{"go.mod", "go.sum"}
-	for _, file := range generatedFiles {
-		filePath := filepath.Join(currentDir, file)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			return fmt.Errorf("required file not found: %s", file)
-		}
-	}
-
-	// Create artifact tar.gz with key files (*.go, go.mod, go.sum, llpyg.cfg, llpkg.cfg)
-	base := filepath.Base(currentDir)
-	artifactName := fmt.Sprintf("%s-%s.tar.gz", base, version)
-	artifactPath := filepath.Join(currentDir, artifactName)
-
-	if err := createTarGz(artifactPath, currentDir, func(rel string) bool {
-		// include root files only for simplicity
-		// allow: *.go, go.mod, go.sum, llpyg.cfg, llpkg.cfg
-		name := rel
-		if strings.Contains(rel, string(filepath.Separator)) {
-			// skip nested dirs to keep artifact small and predictable
-			return false
-		}
-		if strings.HasSuffix(name, ".go") {
-			return true
-		}
-		switch name {
-		case "go.mod", "go.sum", "llpyg.cfg", "llpkg.cfg":
-			return true
-		}
-		return false
-	}); err != nil {
-		return fmt.Errorf("failed to create artifact: %v", err)
-	}
-
-	// Export BIN_PATH and BIN_FILENAME to GITHUB_ENV for upload-artifact step
-	if err := exportToGithubEnv("BIN_PATH", artifactPath); err != nil {
-		return err
-	}
-	if err := exportToGithubEnv("BIN_FILENAME", artifactName); err != nil {
-		return err
-	}
-
-	fmt.Printf("Python package release completed successfully with version: %s\n", version)
-	fmt.Printf("Note: This is a simplified release process for Python packages (%s@%s -> %s)\n", cfg.Upstream.Package.Name, pythonVersion, version)
+	fmt.Printf("Python package release completed successfully\n")
+	fmt.Printf("Package: %s, Python Version: %s\n", packageName, pythonVersion)
+	fmt.Printf("Note: Now using unified version management (same as C++)")
 
 	return nil
 }
