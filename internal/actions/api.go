@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -635,7 +636,15 @@ func (d *DefaultClient) Postprocessing() error {
 	ver.Write(clib, cfg.Upstream.Package.Version, mappedVersion)
 
 	if hasTag(version) {
-		return fmt.Errorf("actions: tag has already existed")
+		fmt.Printf("Warning: tag %s already exists, will be overwritten\n", version)
+		// 删除已存在的标签
+		if err := exec.Command("git", "tag", "-d", version).Run(); err != nil {
+			fmt.Printf("Warning: failed to delete local tag %s: %v\n", version, err)
+		}
+		// 删除远程标签
+		if err := exec.Command("git", "push", "origin", ":"+version).Run(); err != nil {
+			fmt.Printf("Warning: failed to delete remote tag %s: %v\n", version, err)
+		}
 	}
 
 	if err := d.createTag(version, sha); err != nil {
