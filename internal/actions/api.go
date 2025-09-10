@@ -635,24 +635,34 @@ func (d *DefaultClient) Postprocessing() error {
 	ver := versions.Read("llpkgstore.json")
 	ver.Write(clib, cfg.Upstream.Package.Version, mappedVersion)
 
-	if hasTag(version) {
-		fmt.Printf("Warning: tag %s already exists, will be overwritten\n", version)
+	// 根据包类型确定标签格式
+	tagName := version // 默认使用原始版本格式
+	if cfg.Type == "python" {
+		// 对于Python包，使用Python_package/包名/版本格式
+		tagName = fmt.Sprintf("Python_package/%s/%s", clib, mappedVersion)
+		fmt.Printf("Python package detected, using tag format: %s\n", tagName)
+	} else {
+		fmt.Printf("C++ package detected, using tag format: %s\n", tagName)
+	}
+
+	if hasTag(tagName) {
+		fmt.Printf("Warning: tag %s already exists, will be overwritten\n", tagName)
 		// 删除已存在的标签
-		if err := exec.Command("git", "tag", "-d", version).Run(); err != nil {
-			fmt.Printf("Warning: failed to delete local tag %s: %v\n", version, err)
+		if err := exec.Command("git", "tag", "-d", tagName).Run(); err != nil {
+			fmt.Printf("Warning: failed to delete local tag %s: %v\n", tagName, err)
 		}
 		// 删除远程标签
-		if err := exec.Command("git", "push", "origin", ":"+version).Run(); err != nil {
-			fmt.Printf("Warning: failed to delete remote tag %s: %v\n", version, err)
+		if err := exec.Command("git", "push", "origin", ":"+tagName).Run(); err != nil {
+			fmt.Printf("Warning: failed to delete remote tag %s: %v\n", tagName, err)
 		}
 	}
 
-	if err := d.createTag(version, sha); err != nil {
+	if err := d.createTag(tagName, sha); err != nil {
 		return err
 	}
 
 	// create a release
-	release, err := d.createReleaseByTag(version)
+	release, err := d.createReleaseByTag(tagName)
 	if err != nil {
 		return err
 	}
