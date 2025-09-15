@@ -35,14 +35,14 @@ func (l *LlpygConfig) Validate() error {
 		return errors.New("mod_depth should not exceed 10 for performance reasons")
 	}
 
-	// 验证输出目录路径
+	// Validate output directory path
 	if l.OutputDir != "" {
 		if err := validateOutputDir(l.OutputDir); err != nil {
 			return fmt.Errorf("invalid output_dir: %v", err)
 		}
 	}
 
-	// 验证模块名
+	// Validate module name
 	if l.ModName != "" {
 		if err := validateModuleName(l.ModName); err != nil {
 			return fmt.Errorf("invalid mod_name: %v", err)
@@ -54,7 +54,7 @@ func (l *LlpygConfig) Validate() error {
 
 // validateOutputDir validates the output directory path
 func validateOutputDir(outputDir string) error {
-	// 检查路径是否包含非法字符
+	// Check if path contains illegal characters
 	illegalChars := []string{"..", "~", "\\", ":", "*", "?", "\"", "<", ">", "|"}
 	for _, char := range illegalChars {
 		if strings.Contains(outputDir, char) {
@@ -62,7 +62,7 @@ func validateOutputDir(outputDir string) error {
 		}
 	}
 
-	// 检查路径长度
+	// Check path length
 	if len(outputDir) > 255 {
 		return errors.New("output directory path too long")
 	}
@@ -72,12 +72,12 @@ func validateOutputDir(outputDir string) error {
 
 // validateModuleName validates the Go module name
 func validateModuleName(modName string) error {
-	// 检查模块名格式
+	// Check module name format
 	if !strings.Contains(modName, "/") {
 		return errors.New("module name should contain at least one slash")
 	}
 
-	// 检查是否以 github.com 或其他有效域名开头
+	// Check if it starts with github.com or other valid domains
 	validPrefixes := []string{"github.com", "gitlab.com", "gitee.com", "bitbucket.org"}
 	hasValidPrefix := false
 	for _, prefix := range validPrefixes {
@@ -91,7 +91,7 @@ func validateModuleName(modName string) error {
 		return fmt.Errorf("module name should start with a valid domain (e.g., github.com)")
 	}
 
-	// 检查模块名长度
+	// Check module name length
 	if len(modName) > 200 {
 		return errors.New("module name too long")
 	}
@@ -102,7 +102,7 @@ func validateModuleName(modName string) error {
 // GetDefaultModDepth returns the default module depth if not specified
 func (l *LlpygConfig) GetDefaultModDepth() int {
 	if l.ModDepth == 0 {
-		return 1 // 默认深度为 1
+		return 1 // Default depth is 1
 	}
 	return l.ModDepth
 }
@@ -110,7 +110,7 @@ func (l *LlpygConfig) GetDefaultModDepth() int {
 // GetDefaultOutputDir returns the default output directory if not specified
 func (l *LlpygConfig) GetDefaultOutputDir() string {
 	if l.OutputDir == "" {
-		return "./test" // 默认输出目录
+		return "./test" // Default output directory
 	}
 	return l.OutputDir
 }
@@ -118,7 +118,7 @@ func (l *LlpygConfig) GetDefaultOutputDir() string {
 // GetDefaultModName returns the default module name if not specified
 func (l *LlpygConfig) GetDefaultModName() string {
 	if l.ModName == "" {
-		return "" // 默认使用包名
+		return "" // Default to use package name
 	}
 	return l.ModName
 }

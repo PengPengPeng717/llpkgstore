@@ -28,14 +28,14 @@ func currentDir() string {
 	return dir
 }
 
-// isPackageInstalledInSystem 检查指定包是否已在系统环境中安装
+// isPackageInstalledInSystem checks if the specified package is already installed in the system environment
 func isPackageInstalledInSystem(packageName string) bool {
-	// 方法1: 尝试直接导入包
+	// Method 1: Try to import the package directly
 	if canImportPackage(packageName) {
 		return true
 	}
 
-	// 方法2: 检查pip list输出
+	// Method 2: Check pip list output
 	if isPackageInPipList(packageName) {
 		return true
 	}
@@ -43,7 +43,7 @@ func isPackageInstalledInSystem(packageName string) bool {
 	return false
 }
 
-// canImportPackage 尝试导入包来检查是否已安装
+// canImportPackage tries to import the package to check if it's installed
 func canImportPackage(packageName string) bool {
 	cmd := exec.Command("python3", "-c", fmt.Sprintf("import %s; print('OK')", packageName))
 	output, err := cmd.CombinedOutput()
@@ -52,12 +52,12 @@ func canImportPackage(packageName string) bool {
 		return false
 	}
 
-	// 检查输出是否包含"OK"
+	// Check if output contains "OK"
 	result := strings.TrimSpace(string(output))
 	return strings.Contains(result, "OK")
 }
 
-// isPackageInPipList 检查包是否在pip list中
+// isPackageInPipList checks if the package is in pip list
 func isPackageInPipList(packageName string) bool {
 	cmd := exec.Command("pip3", "list")
 	output, err := cmd.CombinedOutput()
@@ -66,7 +66,7 @@ func isPackageInPipList(packageName string) bool {
 		return false
 	}
 
-	// 检查包名是否在输出中
+	// Check if package name is in the output
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, packageName) {
@@ -88,15 +88,15 @@ func runLLPygGenerateWithDir(dir string) error {
 	}
 	log.Printf("Start to generate %s", uc.Pkg.Name)
 
-	// 优先检查系统环境中是否已安装包
+	// Prioritize checking if package is already installed in system environment
 	var pythonDir string
 	var tempDir string
 	var needCleanup bool
 
-	// 检查系统环境中是否已有该包
+	// Check if the package already exists in system environment
 	if isPackageInstalledInSystem(uc.Pkg.Name) {
 		log.Printf("Package %s found in system environment, using system installation", uc.Pkg.Name)
-		pythonDir = "" // 使用系统环境，不需要设置PYTHONPATH
+		pythonDir = "" // Use system environment, no need to set PYTHONPATH
 	} else {
 		log.Printf("Package %s not found in system environment, installing to temporary directory", uc.Pkg.Name)
 		tempDir, err = os.MkdirTemp("", "llpkg-tool")

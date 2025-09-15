@@ -48,7 +48,7 @@ func (p *pipInstaller) options() []string {
 func (p *pipInstaller) Install(pkg upstream.Package, outputDir string) ([]string, error) {
 	fmt.Printf("Installing Python package: %s==%s to %s\n", pkg.Name, pkg.Version, outputDir)
 
-	// 检查输出目录是否存在，如果不存在则创建
+	// Check if output directory exists, create if not
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory %s: %v", outputDir, err)
 	}
@@ -57,16 +57,16 @@ func (p *pipInstaller) Install(pkg upstream.Package, outputDir string) ([]string
 	// pip3 install --target=%s --no-deps --no-cache-dir %s==%s
 	args := []string{"install", "--target", outputDir}
 
-	// 添加额外的 pip 选项
+	// Add additional pip options
 	for _, opt := range p.options() {
 		args = append(args, opt)
 	}
 
-	// 添加一些常用的 pip 选项以提高稳定性
-	args = append(args, "--no-deps")      // 暂时不安装依赖，避免版本冲突
-	args = append(args, "--no-cache-dir") // 不使用缓存，确保获取最新版本
+	// Add some common pip options for better stability
+	args = append(args, "--no-deps")      // Temporarily don't install dependencies to avoid version conflicts
+	args = append(args, "--no-cache-dir") // Don't use cache to ensure getting the latest version
 
-	// 添加包名和版本
+	// Add package name and version
 	args = append(args, pkg.Name+"=="+pkg.Version)
 
 	buildCmd := exec.Command("pip3", args...)

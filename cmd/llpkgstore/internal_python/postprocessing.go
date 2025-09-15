@@ -63,7 +63,7 @@ func createGitHubRelease(packageName, version, currentDir string) error {
 	// Check if we're in a GitHub Actions environment
 	if os.Getenv("GITHUB_ACTIONS") != "true" {
 		fmt.Println("Not running in GitHub Actions environment, skipping GitHub Release creation")
-		return nil // 非 GitHub Actions 环境不报错，只是跳过
+		return nil // Non-GitHub Actions environment doesn't report error, just skip
 	}
 
 	// Check if GitHub CLI is available

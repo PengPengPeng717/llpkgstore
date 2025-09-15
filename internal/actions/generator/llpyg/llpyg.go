@@ -60,7 +60,7 @@ type llpygGenerator struct {
 	dir         string // llpyg.cfg abs path
 	pythonDir   string
 	packageName string
-	llpkgConfig *config.LLPkgConfig // 添加配置字段
+	llpkgConfig *config.LLPkgConfig // Add configuration field
 }
 
 func New(dir, packageName, pythonDir string) generator.Generator {
@@ -115,7 +115,7 @@ func (l *llpygGenerator) Generate(toDir string) error {
 		return errors.Join(ErrLLPygGenerate, fmt.Errorf("failed to get absolute path: %v", err))
 	}
 
-	// 读取 llpkg.cfg 配置
+	// Read llpkg.cfg configuration
 	cfgPath := filepath.Join(l.dir, "llpkg.cfg")
 	llpkgConfig, err := config.ParseLLPkgConfig(cfgPath)
 	if err != nil {
@@ -123,7 +123,7 @@ func (l *llpygGenerator) Generate(toDir string) error {
 	}
 	l.llpkgConfig = &llpkgConfig
 
-	// 验证 llpyg 配置
+	// Validate llpyg configuration
 	if err := l.llpkgConfig.Llpyg.Validate(); err != nil {
 		return errors.Join(ErrLLPygGenerate, fmt.Errorf("invalid llpyg config: %v", err))
 	}
@@ -146,7 +146,7 @@ func (l *llpygGenerator) Generate(toDir string) error {
 
 	fmt.Printf("Created temporary working directory: %s\n", tempWorkDir)
 
-	// 构建 llpyg 命令参数
+	// Build llpyg command arguments
 	args := l.buildLlpygArgs()
 	fmt.Printf("Executing llpyg with args: %v\n", args)
 
@@ -155,20 +155,20 @@ func (l *llpygGenerator) Generate(toDir string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// 设置 Python 环境变量，确保 llpyg 能找到安装的包
+	// Set Python environment variables to ensure llpyg can find installed packages
 	if l.pythonDir != "" {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("PYTHONPATH=%s", l.pythonDir))
 		fmt.Printf("Setting PYTHONPATH to: %s\n", l.pythonDir)
 	}
 
-	// 执行 llpyg 命令
+	// Execute llpyg command
 	if err := cmd.Run(); err != nil {
 		return errors.Join(ErrLLPygGenerate, fmt.Errorf("llpyg execution failed: %v", err))
 	}
 
 	fmt.Printf("llpyg execution completed successfully\n")
 
-	// 根据配置的输出目录确定生成文件的位置
+	// Determine generated file location based on configured output directory
 	outputDir := l.getOutputDir()
 	generatedPath := filepath.Join(tempWorkDir, outputDir, l.packageName)
 	if _, err := os.Stat(generatedPath); os.IsNotExist(err) {
@@ -196,31 +196,31 @@ func (l *llpygGenerator) Generate(toDir string) error {
 	return nil
 }
 
-// buildLlpygArgs 构建 llpyg 命令行参数
+// buildLlpygArgs builds llpyg command line arguments
 func (l *llpygGenerator) buildLlpygArgs() []string {
 	var args []string
 
-	// 添加 -o 参数（输出目录）
+	// Add -o parameter (output directory)
 	if l.llpkgConfig.Llpyg.OutputDir != "" {
 		args = append(args, "-o", l.llpkgConfig.Llpyg.OutputDir)
 	}
 
-	// 添加 -mod 参数（模块名）
+	// Add -mod parameter (module name)
 	if l.llpkgConfig.Llpyg.ModName != "" {
 		args = append(args, "-mod", l.llpkgConfig.Llpyg.ModName)
 	}
 
-	// 添加 -d 参数（模块深度）
+	// Add -d parameter (module depth)
 	modDepth := l.llpkgConfig.Llpyg.GetDefaultModDepth()
 	args = append(args, "-d", fmt.Sprintf("%d", modDepth))
 
-	// 添加包名
+	// Add package name
 	args = append(args, l.packageName)
 
 	return args
 }
 
-// getOutputDir 获取输出目录
+// getOutputDir gets the output directory
 func (l *llpygGenerator) getOutputDir() string {
 	return l.llpkgConfig.Llpyg.GetDefaultOutputDir()
 }

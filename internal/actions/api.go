@@ -640,10 +640,10 @@ func (d *DefaultClient) Postprocessing() error {
 		fmt.Printf("Skipping llpkgstore.json update for Python package: %s\n", clib)
 	}
 
-	// 根据包类型确定标签格式
-	tagName := version // 默认使用原始版本格式
+	// Determine tag format based on package type
+	tagName := version // Default to original version format
 	if cfg.Type == "python" {
-		// 对于Python包，使用py/包名/版本格式
+		// For Python packages, use py/package_name/version format
 		tagName = fmt.Sprintf("py/%s/%s", clib, mappedVersion)
 		fmt.Printf("Python package detected, using tag format: %s\n", tagName)
 	} else {
@@ -652,11 +652,11 @@ func (d *DefaultClient) Postprocessing() error {
 
 	if hasTag(tagName) {
 		fmt.Printf("Warning: tag %s already exists, will be overwritten\n", tagName)
-		// 删除已存在的标签
+		// Delete existing local tag
 		if err := exec.Command("git", "tag", "-d", tagName).Run(); err != nil {
 			fmt.Printf("Warning: failed to delete local tag %s: %v\n", tagName, err)
 		}
-		// 删除远程标签
+		// Delete remote tag
 		if err := exec.Command("git", "push", "origin", ":"+tagName).Run(); err != nil {
 			fmt.Printf("Warning: failed to delete remote tag %s: %v\n", tagName, err)
 		}
