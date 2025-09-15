@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	cmd_cpp "github.com/goplus/llpkgstore/cmd/llpkgstore/internal_cpp"
-	cmd_python "github.com/goplus/llpkgstore/cmd/llpkgstore/internal_python"
+	cmd_cpp "github.com/goplus/llpkgstore/cmd/llpkgstore/internal/internal_cpp"
+	cmd_python "github.com/goplus/llpkgstore/cmd/llpkgstore/internal/internal_python"
 	"github.com/goplus/llpkgstore/config"
 )
 
