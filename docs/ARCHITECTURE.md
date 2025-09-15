@@ -44,6 +44,267 @@ llpkgstore 是一个专为 [**LLGo**](https://github.com/goplus/llgo) 设计的�
 - **类型定义**: 配置结构体定义
 - **验证逻辑**: 配置有效性检查
 
+## 📁 项目目录结构
+
+### 完整目录结构
+```
+llpkgstore_912/
+├── cmd/llpkgstore/           # 命令行接口层
+│   ├── main.go              # 主入口，包类型检测和路由
+│   └── internal/            # 内部命令实现
+│       ├── internal_cpp/    # C/C++包处理命令
+│       │   ├── generate.go  # 生成Go绑定
+│       │   ├── install.go   # 安装C/C++包
+│       │   ├── postprocessing.go # 后处理（版本管理）
+│       │   ├── release.go   # 发布管理
+│       │   ├── verification.go # 验证功能
+│       │   ├── demotest.go  # 演示测试
+│       │   ├── issueclose.go # Issue关闭
+│       │   ├── labelcreate.go # 标签创建
+│       │   └── root.go      # 根命令定义
+│       └── internal_python/ # Python包处理命令
+│           ├── generate.go  # 生成Go绑定（含智能包检测）
+│           ├── install.go   # 安装Python包
+│           ├── postprocessing.go # 后处理（版本管理）
+│           ├── release.go   # 发布管理
+│           ├── verification.go # 验证功能
+│           ├── test.go      # 测试功能
+│           ├── demotest.go  # 演示测试
+│           ├── issueclose.go # Issue关闭
+│           ├── labelcreate.go # 标签创建
+│           └── root.go      # 根命令定义
+├── config/                  # 配置管理
+│   ├── config.go           # 配置结构定义
+│   ├── parse.go            # 配置文件解析
+│   ├── parse_test.go       # 解析测试
+│   ├── validate.go         # 配置验证
+│   └── validate_test.go    # 验证测试
+├── internal/               # 内部业务逻辑
+│   ├── actions/           # 核心操作
+│   │   ├── actions.go     # 主要业务逻辑
+│   │   ├── actions_test.go # 业务逻辑测试
+│   │   ├── api.go         # GitHub API集成
+│   │   ├── api_test.go    # API测试
+│   │   ├── err.go         # 错误定义
+│   │   ├── env/           # 环境变量处理
+│   │   │   ├── env.go     # 环境变量操作
+│   │   │   ├── env_test.go # 环境变量测试
+│   │   │   └── err.go     # 环境错误定义
+│   │   ├── versions/      # 版本管理
+│   │   │   ├── versions.go # 版本操作
+│   │   │   ├── versions_test.go # 版本测试
+│   │   │   └── semver.go  # 语义化版本
+│   │   └── generator/     # 代码生成器
+│   │       ├── generator.go # 生成器接口
+│   │       ├── llcppg/    # C/C++绑定生成器
+│   │       │   ├── llcppg.go # llcppg实现
+│   │       │   ├── llcppg_test.go # llcppg测试
+│   │       │   └── testfind2/ # 测试文件
+│   │       └── llpyg/     # Python绑定生成器
+│   │           └── llpyg.go # llpyg实现
+│   ├── cmdbuilder/        # 命令构建器
+│   │   ├── cmdbuilder.go  # 命令构建逻辑
+│   │   └── cmdbuilder_test.go # 命令构建测试
+│   ├── debug/             # 调试工具
+│   │   └── debug.go       # 调试功能
+│   ├── demo/              # 演示代码
+│   │   └── run.go         # 演示运行器
+│   ├── file/              # 文件操作工具
+│   │   ├── file.go        # 文件操作
+│   │   ├── file_test.go   # 文件操作测试
+│   │   └── ziptest/       # 压缩测试
+│   ├── hashutils/         # 哈希计算工具
+│   │   └── hashutils.go   # 哈希工具
+│   └── pc/                # pkg-config处理
+│       ├── env.go         # 环境处理
+│       ├── tmpl.go        # 模板处理
+│       └── tmpl_test.go   # 模板测试
+├── upstream/              # 上游包管理器集成
+│   ├── installer/         # 安装器实现
+│   │   ├── pip/          # Python pip安装器
+│   │   │   └── pip.go    # pip实现
+│   │   └── conan/        # C/C++ conan安装器
+│   │       ├── conan.go  # conan实现
+│   │       ├── conan_test.go # conan测试
+│   │       └── output.go # 输出处理
+│   ├── installer.go       # 安装器接口定义
+│   └── upstream.go        # 上游接口定义
+├── metadata/              # 元数据管理
+│   ├── cache.go          # 缓存机制
+│   ├── cache_test.go     # 缓存测试
+│   ├── metadata.go       # 元数据处理
+│   ├── metadata_test.go  # 元数据测试
+│   ├── version.go        # 版本信息
+│   └── version_test.go   # 版本测试
+├── docs/                  # 文档
+│   ├── ARCHITECTURE.md   # 架构文档
+│   ├── PROJECT.md        # 项目文档
+│   ├── llpkgstore.md     # 技术文档
+│   ├── llpkg_index.svg   # 索引页面图表
+│   └── llpkg_pkg.svg     # 包详情页面图表
+├── _demo/                 # 演示配置
+│   ├── llcppg.cfg        # C/C++演示配置
+│   ├── llcppg.symb.json  # C/C++符号文件
+│   ├── llpkg.cfg         # 包配置
+│   └── llpkg.cfg.example # 配置示例
+├── .github/               # GitHub配置
+├── go.mod                 # Go模块定义
+├── go.sum                 # Go依赖校验
+└── test_config.go         # 测试配置
+```
+
+### 目录结构说明
+
+#### 🎯 核心目录
+
+**`cmd/llpkgstore/`** - 命令行接口层
+- **`main.go`**: 程序入口，负责包类型检测和路由
+- **`internal/`**: 内部命令实现
+  - **`internal_cpp/`**: C/C++包处理命令集合
+  - **`internal_python/`**: Python包处理命令集合
+
+**`config/`** - 配置管理
+- 统一的配置文件解析和验证
+- 支持多种包类型的配置格式
+- 完整的配置验证和错误处理
+
+**`internal/`** - 业务逻辑层
+- **`actions/`**: 核心业务逻辑，包括版本管理、API集成
+- **`generator/`**: 代码生成器，支持llpyg和llcppg
+- **`file/`**: 文件操作工具
+- **`hashutils/`**: 哈希计算工具
+
+**`upstream/`** - 上游包管理器集成
+- **`installer/`**: 各种包管理器的实现
+  - **`pip/`**: Python包管理器
+  - **`conan/`**: C/C++包管理器
+
+**`metadata/`** - 元数据管理
+- 包元数据的缓存和管理
+- 版本信息的存储和查询
+
+#### 🔧 技术特点
+
+1. **模块化设计**: 每个功能模块独立，便于维护和扩展
+2. **统一接口**: C/C++和Python包使用相同的处理流程
+3. **智能检测**: 自动检测包类型并选择相应的处理逻辑
+4. **完整测试**: 每个模块都有对应的测试文件
+5. **文档齐全**: 详细的架构文档和使用说明
+
+### 关键模块功能详解
+
+#### 🎯 命令层模块
+
+**`cmd/llpkgstore/main.go`**
+- **功能**: 程序入口点，负责包类型检测和路由
+- **特性**: 
+  - 自动检测包类型（python/cpp）
+  - 智能路由到相应的命令实现
+  - 统一的错误处理和帮助信息
+
+**`cmd/llpkgstore/internal/internal_python/`**
+- **功能**: Python包处理命令集合
+- **核心文件**:
+  - `generate.go`: 生成Go绑定，包含智能包检测机制
+  - `install.go`: 安装Python包到指定目录
+  - `postprocessing.go`: 后处理，包括版本管理和Git标签创建
+  - `release.go`: 发布管理，创建GitHub Release
+  - `verification.go`: 验证生成的包
+
+**`cmd/llpkgstore/internal/internal_cpp/`**
+- **功能**: C/C++包处理命令集合
+- **核心文件**:
+  - `generate.go`: 生成Go绑定
+  - `install.go`: 安装C/C++包
+  - `postprocessing.go`: 后处理，版本管理
+  - `release.go`: 发布管理
+  - `verification.go`: 验证功能
+
+#### 🔧 业务逻辑模块
+
+**`internal/actions/`**
+- **功能**: 核心业务逻辑实现
+- **关键组件**:
+  - `actions.go`: 主要业务逻辑，版本提取和映射
+  - `api.go`: GitHub API集成，Release和标签管理
+  - `env/`: 环境变量处理，GitHub Actions集成
+  - `versions/`: 版本管理，语义化版本处理
+  - `generator/`: 代码生成器集成
+
+**`internal/actions/generator/llpyg/`**
+- **功能**: Python绑定生成器
+- **特性**:
+  - 智能包检测，优先使用系统环境中的包
+  - 配置驱动的代码生成
+  - 支持自定义模块名和提取深度
+
+**`internal/actions/generator/llcppg/`**
+- **功能**: C/C++绑定生成器
+- **特性**:
+  - 二进制分发支持
+  - .pc文件生成
+  - 跨平台兼容性
+
+#### ⚙️ 配置和集成模块
+
+**`config/`**
+- **功能**: 统一的配置管理
+- **特性**:
+  - 支持多种包类型配置
+  - 完整的配置验证
+  - 类型安全的配置结构
+
+**`upstream/installer/`**
+- **功能**: 上游包管理器集成
+- **支持的管理器**:
+  - `pip/`: Python包管理器，支持智能安装
+  - `conan/`: C/C++包管理器，支持二进制分发
+
+**`metadata/`**
+- **功能**: 元数据管理和缓存
+- **特性**:
+  - 版本信息缓存
+  - 包元数据存储
+  - 高效的查询机制
+
+#### 📁 工具和辅助模块
+
+**`internal/file/`**
+- **功能**: 文件操作工具
+- **特性**:
+  - 跨平台文件操作
+  - 压缩和解压缩支持
+  - 文件系统操作抽象
+
+**`internal/hashutils/`**
+- **功能**: 哈希计算工具
+- **用途**: 文件完整性验证，缓存键生成
+
+**`internal/pc/`**
+- **功能**: pkg-config处理
+- **用途**: C/C++库的配置信息处理
+
+### 模块间交互关系
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   命令层         │    │   业务逻辑层     │    │   集成层         │
+│                │    │                │    │                │
+│ main.go        │◄──►│ actions/       │◄──►│ upstream/      │
+│ internal_*/    │    │ generator/     │    │ metadata/      │
+│                │    │ file/          │    │ config/        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   用户接口       │    │   核心处理       │    │   外部集成       │
+│                │    │                │    │                │
+│ CLI命令         │    │ 版本管理        │    │ GitHub API     │
+│ 配置解析        │    │ 代码生成        │    │ 包管理器        │
+│ 错误处理        │    │ 文件操作        │    │ 元数据存储      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
 ## 🔄 统一版本管理系统 (v2.0+)
 
 ### 架构演进
@@ -313,10 +574,10 @@ func runLLPygGenerateWithDir(dir string) error
 
 ## 📚 相关资源
 
-- **[项目文档](./PROJECT.md)**: 综合设计指南
-- **[Python 支持](./python-support.md)**: Python 包详细信息
-- **[版本管理](./version-management.md)**: 版本管理详细文档
-- **[CI/CD 工作流](./ci-workflow.md)**: CI/CD 流程文档
+- **[项目文档](./PROJECT.md)**: 综合设计指南和用户手册
+- **[技术文档](./llpkgstore.md)**: 详细的技术设计和实现细节
+- **[GitHub 仓库](https://github.com/goplus/llpkgstore)**: 源代码和问题跟踪
+- **[LLGo 项目](https://github.com/goplus/llgo)**: LLGo 语言扩展
 
 ---
 

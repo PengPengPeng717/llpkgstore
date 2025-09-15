@@ -186,9 +186,53 @@ cd my-package
       "name": "requests",
       "version": "2.31.0"
     }
+  },
+  "llpyg": {
+    "output_dir": "./test",
+    "mod_name": "github.com/PengPengPeng717/llpkg/requests",
+    "mod_depth": 1
   }
 }
 ```
+
+### Python 包支持详解
+
+#### 核心特性
+
+- ✅ **完整 Python 包支持**: 为任何 Python 包生成 Go 绑定
+- ✅ **类型安全**: 在生成的 Go 代码中保持类型信息
+- ✅ **模块深度控制**: 可配置的嵌套模块提取深度
+- ✅ **自定义模块名**: 支持自定义 Go 模块名
+- ✅ **自动测试**: 生成演示代码进行验证
+- ✅ **统一版本管理**: 与 C/C++ 包一致的版本映射
+- ✅ **智能版本提取**: 从提交消息自动提取版本信息
+- ✅ **双重版本记录**: 本地和集中式版本记录文件
+- ✅ **自动 Git 标签**: 基于版本自动创建和推送 Git 标签
+- ✅ **CI/CD 集成**: 完整的 GitHub Actions 支持
+
+#### Python 包生成流程
+
+1. **包安装**: 使用 pip 安装指定的 Python 包
+2. **绑定生成**: 生成 Go 接口和类型安全的绑定
+3. **模块配置**: 配置输出目录、模块名和提取深度
+4. **Go 模块创建**: 创建带有依赖关系的正确 Go 模块
+5. **测试验证**: 使用演示代码测试生成的绑定
+
+#### llpyg 配置选项
+
+| 字段 | 类型 | 默认值 | 可选 | 描述 |
+|------|------|--------|------|------|
+| `llpyg.output_dir` | `string` | `"./test"` | ✅ | 生成文件的输出目录 |
+| `llpyg.mod_name` | `string` | 包名 | ✅ | Go 模块名 |
+| `llpyg.mod_depth` | `int` | `1` | ✅ | 最大模块提取深度 (0-10) |
+
+#### Python 包测试
+
+Python 包在 `_demo` 目录中包含演示代码，用于验证：
+- 包导入和编译
+- 基本功能测试
+- 类型安全验证
+- 与 Go 生态系统的集成
 
 ### 3. 生成 Go 绑定
 
@@ -314,6 +358,64 @@ llpkgstore v2.0+ 实现了完全统一的版本管理机制，C/C++ 和 Python �
 - **格式验证**: 确保版本号符合语义化版本规范
 - **冲突检测**: 检测版本冲突和重复
 - **回滚机制**: 支持版本回滚和修复
+
+### 版本映射逻辑详解
+
+#### 核心设计原则
+
+1. **统一版本管理**: Python 和 C++ 包使用相同的版本管理逻辑
+2. **基于 Commit 消息的版本提取**: 从 Git commit 消息中提取版本信息
+3. **集中式版本记录**: 使用 `llpkgstore.json` 文件记录版本映射
+
+#### 版本提取优先级
+
+1. **最新提交消息** (用于 CI 环境)
+2. **Git 标签** (回退机制)
+3. **错误处理** (清晰的错误消息)
+
+#### 版本格式验证
+
+支持的版本格式：
+- `Release-as: {包名}/v{版本号}` (推荐)
+- `Release-as: {包名}/{版本号}`
+- 语义化版本号 (SemVer): `v1.2.3`, `1.2.3`
+
+#### 版本记录更新策略
+
+```go
+// 更新版本记录文件
+func updateLLPkgStoreJSON(packageName, upstreamVersion, mappedVersion string) error {
+    // 1. 读取现有版本记录
+    data, err := os.ReadFile("llpkgstore.json")
+    if err != nil {
+        // 文件不存在时创建新的
+        data = []byte("{}")
+    }
+    
+    // 2. 解析 JSON
+    var versionData LLPkgStoreJSON
+    if len(strings.TrimSpace(string(data))) == 0 {
+        // 空文件时初始化
+        versionData = LLPkgStoreJSON{Packages: make(map[string]PackageInfo)}
+    } else {
+        err = json.Unmarshal(data, &versionData)
+        if err != nil {
+            return err
+        }
+    }
+    
+    // 3. 更新版本信息
+    versionData.Write(packageName, upstreamVersion, mappedVersion)
+    
+    // 4. 写回文件
+    updatedData, err := json.MarshalIndent(versionData, "", "  ")
+    if err != nil {
+        return err
+    }
+    
+    return os.WriteFile("llpkgstore.json", updatedData, 0644)
+}
+```
 
 ## ❓ 常见问题
 
@@ -484,8 +586,7 @@ go test -cpuprofile=cpu.prof -memprofile=mem.prof ./...
 ## 📚 相关资源
 
 - **[架构文档](./ARCHITECTURE.md)**: 详细的系统架构说明
-- **[Python 支持](./python-support.md)**: Python 包支持详细指南
-- **[llpyg 配置](./llpyg-config.md)**: llpyg 工具配置说明
+- **[技术文档](./llpkgstore.md)**: 详细的技术设计和实现细节
 - **[GitHub 仓库](https://github.com/goplus/llpkgstore)**: 源代码和问题跟踪
 - **[LLGo 项目](https://github.com/goplus/llgo)**: LLGo 语言扩展
 

@@ -521,6 +521,61 @@ Python packages follow the same version management strategy as C/C++ packages:
 - Tag management
 - Version mapping in `llpkgstore.json`
 
+### Smart Package Detection
+
+llpkgstore v2.0+ includes intelligent package detection that prioritizes system-installed packages:
+
+```go
+// isPackageInstalledInSystem checks if the specified package is already installed in the system environment
+func isPackageInstalledInSystem(packageName string) bool {
+    // Method 1: Try to import the package directly
+    if canImportPackage(packageName) {
+        return true
+    }
+    
+    // Method 2: Check pip list output
+    if isPackageInPipList(packageName) {
+        return true
+    }
+    
+    return false
+}
+```
+
+This optimization:
+- **Reduces installation time**: From 6 minutes to almost 0 seconds
+- **Saves network usage**: Avoids redundant downloads
+- **Improves user experience**: Faster, smarter workflow
+- **Maintains compatibility**: Falls back to temporary installation when needed
+
+### llpyg Configuration
+
+The `llpyg` section in `llpkg.cfg` provides fine-grained control over Python package generation:
+
+```json
+{
+  "llpyg": {
+    "output_dir": "./test",
+    "mod_name": "github.com/PengPengPeng717/llpkg/numpy",
+    "mod_depth": 1
+  }
+}
+```
+
+#### Configuration Options
+
+| Field | Type | Default | Optional | Description |
+|-------|------|---------|----------|-------------|
+| `output_dir` | `string` | `"./test"` | ✅ | Output directory for generated files |
+| `mod_name` | `string` | package name | ✅ | Go module name |
+| `mod_depth` | `int` | `1` | ✅ | Maximum module extraction depth (0-10) |
+
+#### Validation Rules
+
+- `mod_depth` must be non-negative and not exceed 10
+- `output_dir` cannot contain illegal characters (`..`, `~`, `\`, `:`, `*`, `?`, `"`, `<`, `>`, `|`)
+- `mod_name` must contain at least one slash and start with a valid domain
+
 ## Architecture Improvements
 
 ### Unified Version Management
