@@ -1,241 +1,239 @@
-# llpkgstore - 统一包分发服务
+# llpkgstore - Unified Package Distribution Service
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/goplus/llpkgstore)](https://goreportcard.com/report/github.com/goplus/llpkgstore)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/goplus/llpkgstore)](https://github.com/goplus/llpkgstore/blob/main/go.mod)
 [![License](https://img.shields.io/github/license/goplus/llpkgstore)](https://github.com/goplus/llpkgstore/blob/main/LICENSE)
 [![Build Status](https://github.com/goplus/llpkgstore/workflows/CI/badge.svg)](https://github.com/goplus/llpkgstore/actions)
 
-> **llpkgstore** 是一个专为 [**LLGo**](https://github.com/goplus/llgo) 设计的综合包分发服务，为多语言生态系统提供可信赖且便捷的语言绑定访问。
+> **llpkgstore** is a comprehensive package distribution service designed for [**LLGo**](https://github.com/goplus/llgo), providing trustworthy and convenient language binding access for multi-language ecosystems.
 
-## 📋 目录
+## 📋 Table of Contents
 
-- [概述](#概述)
-- [特性](#特性)
-- [安装](#安装)
-- [快速开始](#快速开始)
-- [使用指南](#使用指南)
-- [配置参考](#配置参考)
-- [API 参考](#api-参考)
-- [架构设计](#架构设计)
-- [开发指南](#开发指南)
-- [常见问题](#常见问题)
-- [更新日志](#更新日志)
-- [许可证](#许可证)
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage Guide](#usage-guide)
+- [Configuration Reference](#configuration-reference)
+- [Development Guide](#development-guide)
+- [Technical Implementation Details](#technical-implementation-details)
+- [FAQ](#faq)
+- [Changelog](#changelog)
+- [Related Resources](#related-resources)
 
-## 概述
+## Overview
 
-llpkgstore 是一个专为 [**LLGo**](https://github.com/goplus/llgo) 设计的统一包分发服务，为多语言生态系统提供可信赖且便捷的语言绑定访问。
+llpkgstore is a unified package distribution service designed for [**LLGo**](https://github.com/goplus/llgo), providing trustworthy and convenient language binding access for multi-language ecosystems.
 
-### 什么是 llpkgstore？
+### What is llpkgstore?
 
-llpkgstore 是一个综合性的包管理工具，它能够：
+llpkgstore is a comprehensive package management tool that can:
 
-- **自动生成语言绑定**: 为 C/C++ 和 Python 库自动生成 Go 语言绑定
-- **统一版本管理**: 提供一致的版本映射和管理机制
-- **智能包检测**: 优先使用系统环境中的包，提高效率
-- **CI/CD 集成**: 与 GitHub Actions 无缝集成，自动化包生成和发布
+- **Automatically generate language bindings**: Automatically generate Go language bindings for C/C++ and Python libraries
+- **Unified version management**: Provide consistent version mapping and management mechanisms
+- **Smart package detection**: Prioritize packages in the system environment for improved efficiency
+- **CI/CD integration**: Seamless integration with GitHub Actions for automated package generation and publishing
 
-### 核心价值
+### Core Values
 
-- **🚀 简化集成**: 将复杂的跨语言绑定生成过程简化为几个命令
-- **🔒 安全可靠**: 通过自动化流程和验证机制确保包质量
-- **🌍 多语言支持**: 统一支持 C/C++ 和 Python 生态系统
-- **⚡ 高效便捷**: 智能检测和缓存机制，减少重复工作
+- **🚀 Simplified Integration**: Simplify complex cross-language binding generation into a few commands
+- **🔒 Secure and Reliable**: Ensure package quality through automated processes and validation mechanisms
+- **🌍 Multi-language Support**: Unified support for C/C++ and Python ecosystems
+- **⚡ Efficient and Convenient**: Smart detection and caching mechanisms to reduce redundant work
 
-## 特性
+## Features
 
-### 多语言支持
+### Multi-language Support
 
-llpkgstore 目前支持以下编程语言和平台：
+llpkgstore currently supports the following programming languages and platforms:
 
-| 语言/平台 | 状态 | 生成工具 | 包管理器 | 主要特性 |
-|-----------|------|----------|----------|----------|
-| **C/C++** | ✅ 完全支持 | `llcppg` | Conan | 二进制分发、头文件、.pc 文件 |
-| **Python** | ✅ 完全支持 | `llpyg` | pip | 模块绑定、Go 接口、类型安全 |
-| **JavaScript** | 🚧 计划中 | - | - | 计划支持 |
-| **Rust** | 🚧 计划中 | - | - | 计划支持 |
+| Language/Platform | Status | Generator Tool | Package Manager | Key Features |
+|-------------------|--------|----------------|-----------------|--------------|
+| **C/C++** | ✅ Fully Supported | `llcppg` | Conan | Binary distribution, headers, .pc files |
+| **Python** | ✅ Fully Supported | `llpyg` | pip | Module bindings, Go interfaces, type safety |
+| **JavaScript** | 🚧 Planned | - | - | Planned support |
+| **Rust** | 🚧 Planned | - | - | Planned support |
 
-### 核心功能
+### Core Features
 
-#### 🔄 统一版本管理
-- **智能版本提取**: 从提交消息自动提取版本信息
-- **版本格式验证**: 支持语义化版本和自定义格式
-- **双重记录机制**: 本地和集中式版本记录同步
-- **自动 Git 标签**: 基于版本信息自动创建和推送标签
+#### 🔄 Unified Version Management
+- **Smart version extraction**: Automatically extract version information from commit messages
+- **Version format validation**: Support for semantic versioning and custom formats
+- **Dual recording mechanism**: Synchronize local and centralized version records
+- **Automatic Git tags**: Automatically create and push tags based on version information
 
-#### 🎯 智能包检测
-- **系统包优先**: 优先使用系统环境中已安装的包
-- **临时安装**: 仅在必要时进行临时包安装
-- **缓存机制**: 智能缓存减少重复下载和安装
+#### 🎯 Smart Package Detection
+- **System package priority**: Prioritize packages already installed in the system environment
+- **Temporary installation**: Perform temporary package installation only when necessary
+- **Caching mechanism**: Smart caching to reduce redundant downloads and installations
 
-#### 🚀 自动化工作流
-- **CI/CD 集成**: 与 GitHub Actions 无缝集成
-- **自动发布**: 自动创建 GitHub Releases
-- **测试验证**: 自动生成和运行测试代码
-- **错误处理**: 完善的错误处理和回滚机制
+#### 🚀 Automated Workflows
+- **CI/CD integration**: Seamless integration with GitHub Actions
+- **Automatic publishing**: Automatically create GitHub Releases
+- **Test validation**: Automatically generate and run test code
+- **Error handling**: Comprehensive error handling and rollback mechanisms
 
-#### 🔧 开发者体验
-- **统一 CLI**: 一致的命令行接口
-- **配置驱动**: 基于配置文件的灵活设置
-- **详细日志**: 完整的操作日志和调试信息
-- **文档生成**: 自动生成使用文档和示例
+#### 🔧 Developer Experience
+- **Unified CLI**: Consistent command-line interface
+- **Configuration-driven**: Flexible settings based on configuration files
+- **Detailed logging**: Complete operation logs and debugging information
+- **Documentation generation**: Automatically generate usage documentation and examples
 
-## 🏗️ 系统架构
+## 🏗️ System Architecture
 
-### 整体架构图
+### Overall Architecture Diagram
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   用户界面层     │    │   业务逻辑层     │    │   数据存储层     │
-│                │    │                │    │                │
-│ • CLI 命令      │◄──►│ • 包管理逻辑     │◄──►│ • 配置文件      │
-│ • 配置接口      │    │ • 版本管理      │    │ • 版本记录      │
-│ • 错误处理      │    │ • 生成器调用     │    │ • 元数据存储     │
+│   User Interface│    │  Business Logic │    │  Data Storage   │
+│                 │    │                 │    │                 │
+│ • CLI Commands  │◄──►│ • Package Logic │◄──►│ • Config Files  │
+│ • Config Interface│    │ • Version Mgmt  │    │ • Version Records│
+│ • Error Handling│    │ • Generator Calls│    │ • Metadata Store│
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### 核心组件
+### Core Components
 
-#### 1. 命令层
-- 统一的 CLI 接口
-- 自动包类型检测
-- 智能路由和分发
+#### 1. Command Layer
+- Unified CLI interface
+- Automatic package type detection
+- Smart routing and distribution
 
-#### 2. 业务逻辑层
-- 包管理核心逻辑
-- 版本管理和映射
-- 生成器集成
+#### 2. Business Logic Layer
+- Core package management logic
+- Version management and mapping
+- Generator integration
 
-#### 3. 配置管理
-- 统一的配置文件格式 (`llpkg.cfg`)
-- 支持包类型特定的配置选项
-- 自动配置验证和错误提示
+#### 3. Configuration Management
+- Unified configuration file format (`llpkg.cfg`)
+- Support for package type-specific configuration options
+- Automatic configuration validation and error prompts
 
-#### 4. 版本管理
-- **统一版本映射**: C/C++ 和 Python 包使用一致的版本管理机制
-- **智能版本提取**: 从提交消息自动提取版本信息
-- **双重版本记录**: 同时更新本地和集中式版本记录文件
-- **自动 Git 标签**: 基于版本信息自动创建和推送 Git 标签
-- **版本验证**: 完整的版本格式验证和冲突检测
+#### 4. Version Management
+- **Unified version mapping**: C/C++ and Python packages use consistent version management mechanisms
+- **Smart version extraction**: Automatically extract version information from commit messages
+- **Automatic Git tags**: Automatically create and push Git tags based on version information
+- **Version validation**: Complete version format validation and conflict detection
 
-## 安装
+## Installation
 
-### 系统要求
+### System Requirements
 
-在安装 llpkgstore 之前，请确保您的系统满足以下要求：
+Before installing llpkgstore, ensure your system meets the following requirements:
 
-| 组件 | 最低版本 | 说明 |
-|------|----------|------|
-| **Go** | 1.19+ | 用于构建和运行 llpkgstore |
-| **Python** | 3.7+ | 用于 Python 包支持 |
-| **Git** | 2.0+ | 用于版本控制和标签管理 |
-| **操作系统** | - | Linux、macOS、Windows |
+| Component | Minimum Version | Description |
+|-----------|-----------------|-------------|
+| **Go** | 1.19+ | For building and running llpkgstore |
+| **Python** | 3.7+ | For Python package support |
+| **Git** | 2.0+ | For version control and tag management |
+| **Operating System** | - | Linux, macOS, Windows |
 
-### 安装方法
+### Installation Methods
 
-#### 方法 1: 使用 go install (推荐)
+#### Method 1: Using go install (Recommended)
 
 ```bash
 go install github.com/goplus/llpkgstore/cmd/llpkgstore@latest
 ```
 
-#### 方法 2: 从源码构建
+#### Method 2: Build from Source
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/goplus/llpkgstore.git
 cd llpkgstore
 
-# 构建
+# Build
 go build -o llpkgstore ./cmd/llpkgstore
 
-# 安装到系统路径
+# Install to system path
 sudo cp llpkgstore /usr/local/bin/
 ```
 
-#### 方法 3: 下载预编译二进制文件
+#### Method 3: Download Pre-compiled Binaries
 
-从 [GitHub Releases](https://github.com/goplus/llpkgstore/releases) 下载适合您系统的预编译版本。
+Download pre-compiled versions suitable for your system from [GitHub Releases](https://github.com/goplus/llpkgstore/releases).
 
-### 验证安装
+### Verify Installation
 
-安装完成后，验证 llpkgstore 是否正确安装：
+After installation, verify that llpkgstore is correctly installed:
 
 ```bash
 llpkgstore --version
 ```
 
-如果安装成功，您应该看到类似以下的输出：
+If installation is successful, you should see output similar to:
 
 ```
 llpkgstore version 2.0.0
 ```
 
-### 环境配置
+### Environment Configuration
 
-#### Python 环境配置
+#### Python Environment Configuration
 
-llpkgstore 需要 Python 环境来支持 Python 包的处理：
+llpkgstore requires a Python environment to support Python package processing:
 
 ```bash
-# 检查 Python 版本
+# Check Python version
 python3 --version
 
-# 检查 pip 版本
+# Check pip version
 pip3 --version
 
-# 可选：创建专用的虚拟环境
+# Optional: Create a dedicated virtual environment
 python3 -m venv ~/.llpkgstore-env
 source ~/.llpkgstore-env/bin/activate  # Linux/macOS
-# 或
+# or
 ~/.llpkgstore-env\Scripts\activate     # Windows
 ```
 
-#### C/C++ 环境配置 (可选)
+#### C/C++ Environment Configuration (Optional)
 
-如果您需要处理 C/C++ 包，可以安装 Conan：
+If you need to handle C/C++ packages, you can install Conan:
 
 ```bash
-# 安装 Conan
+# Install Conan
 pip3 install conan
 
-# 配置 Conan
+# Configure Conan
 conan profile detect --force
 ```
 
-### 故障排除
+### Troubleshooting
 
-#### 常见安装问题
+#### Common Installation Issues
 
-**问题 1**: `command not found: llpkgstore`
+**Issue 1**: `command not found: llpkgstore`
 ```bash
-# 解决方案：确保 Go bin 目录在 PATH 中
+# Solution: Ensure Go bin directory is in PATH
 echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-**问题 2**: Python 版本不兼容
+**Issue 2**: Python version incompatibility
 ```bash
-# 解决方案：使用 pyenv 管理 Python 版本
+# Solution: Use pyenv to manage Python versions
 curl https://pyenv.run | bash
 pyenv install 3.9.0
 pyenv global 3.9.0
 ```
 
-## 快速开始
+## Quick Start
 
-本指南将帮助您快速上手 llpkgstore，通过几个简单的步骤创建一个 Python 包的 Go 绑定。
+This guide will help you quickly get started with llpkgstore by creating Go bindings for a Python package in a few simple steps.
 
-### 步骤 1: 创建项目目录
+### Step 1: Create Project Directory
 
 ```bash
 mkdir my-python-package
 cd my-python-package
 ```
 
-### 步骤 2: 创建配置文件
+### Step 2: Create Configuration File
 
-创建 `llpkg.cfg` 配置文件，指定要处理的 Python 包：
+Create a `llpkg.cfg` configuration file specifying the Python package to process:
 
 ```json
 {
@@ -257,31 +255,31 @@ cd my-python-package
 }
 ```
 
-### 步骤 3: 安装包
+### Step 3: Install Package
 
 ```bash
 llpkgstore install llpkg.cfg
 ```
 
-### 步骤 4: 生成 Go 绑定
+### Step 4: Generate Go Bindings
 
 ```bash
 llpkgstore generate
 ```
 
-### 步骤 5: 验证结果
+### Step 5: Verify Results
 
-检查生成的文件：
+Check the generated files:
 
 ```bash
 ls -la bindings/
 ```
 
-您应该看到生成的 Go 文件，包括：
-- `requests.go` - 主要的 Go 绑定文件
-- `requests_autogen_link.go` - 自动生成的链接文件
+You should see generated Go files including:
+- `requests.go` - Main Go binding file
+- `requests_autogen_link.go` - Auto-generated link file
 
-### 步骤 6: 测试绑定
+### Step 6: Test Bindings
 
 ```bash
 cd bindings
@@ -289,44 +287,202 @@ go mod tidy
 go run _demo/main.go
 ```
 
-## 使用指南
+## Usage Guide
 
-### 基本命令
+### Basic Commands
 
-llpkgstore 提供以下主要命令：
+llpkgstore provides the following main commands:
 
-| 命令 | 描述 | 示例 |
-|------|------|------|
-| `install` | 安装指定的包 | `llpkgstore install llpkg.cfg` |
-| `generate` | 生成 Go 绑定 | `llpkgstore generate` |
-| `postprocessing` | 后处理（版本管理） | `llpkgstore postprocessing` |
-| `release` | 创建发布 | `llpkgstore release` |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `install` | Install specified package | `llpkgstore install llpkg.cfg` |
+| `generate` | Generate Go bindings | `llpkgstore generate` |
+| `postprocessing` | Post-processing (version management) | `llpkgstore postprocessing` |
+| `release` | Create release | `llpkgstore release` |
 
-### 配置文件格式
+### Getting llpkg
 
-#### Python 包配置
+#### C/C++ Packages
+Use `llgo get` to get C/C++ llpkg:
+
+```bash
+llgo get clib@cversion
+```
+
+*Example* `llgo get cjson@1.7.18`
+
+- `clib`: Original C library name
+- `cversion`: Original C library version
+
+#### Python Packages
+Use `llgo get` to get Python llpkg:
+
+```bash
+llgo get github.com/goplus/llpkg/numpy@v1.26.4
+```
+
+Or use simplified syntax (if supported):
+
+```bash
+llgo get numpy@1.26.4
+```
+
+#### Universal Syntax
+Both package types support universal syntax:
+
+```bash
+llgo get module_path@module_version
+```
+
+*Example* `llgo get github.com/goplus/llpkg/cjson@v1.0.0`
+
+```bash
+llgo get clib[@latest]
+llgo get module_path[@latest]
+```
+
+The optional `latest` identifier is supported as a valid `cversion` or `module_version`. When using `llgo get clib@latest`, `llgo get` will first convert `clib` to `module_path`, then process it as `module_path@latest`.
+
+### Listing Package Version Mappings
+
+```
+llgo list -m [-versions] [-json] [modules/clibs]
+```
+
+- `llgo list -m` is compatible with `go list -m`
+- `modules`: A set of space-separated module_path[@module_version]
+- `clibs`: A set of space-separated clib[@cversion]
+
+Each argument is processed separately.
+
+#### Module Query Examples
+
+**C/C++ packages**:
+```bash
+llgo list -m cjson
+# Output: github.com/goplus/llpkg/cjson v0.1.0[conan:cjson/1.7.18]
+```
+
+**Python packages**:
+```bash
+llgo list -m numpy
+# Output: github.com/goplus/llpkg/numpy v1.26.4[pip:numpy/1.26.4]
+```
+
+**View all versions**:
+```bash
+llgo list -m -versions cjson
+# Output: github.com/goplus/llpkg/cjson v0.1.0[conan:cjson/1.7.18] v0.1.1[conan:cjson/1.7.18] v0.2.0[conan:cjson/1.7.19]
+```
+
+### Configuration File Format
+
+Detailed configuration file format description can be found in the [Configuration Reference](#configuration-reference) section.
+
+### Package Generation Workflow
+
+#### C/C++ Package Generation
+
+Standard method for generating valid C/C++ llpkgs:
+
+1. **Receive binaries/headers**: Receive binary files and headers from installer, and index them into `.pc` files
+2. **Detect generator**: Detect generator from configuration files. For example, if an `llcppg.cfg` file is present in the current directory, we can directly use `llcppg`
+3. **Automatically generate llpkg**: Use generator to automatically generate llpkg for different platforms
+4. **Combine generated results**: Combine generated results into one Go module
+5. **Debug and re-generate**: Debug and re-generate llpkg by modifying configuration files
+
+#### Python Package Generation
+
+Standard method for generating valid Python llpkgs:
+
+1. **Install Python package**: Use pip installer to install Python package
+2. **Generate Go bindings**: Use `llpyg` tool to generate Go bindings for Python modules
+3. **Configure module**: Configure output directory, module name, and extraction depth
+4. **Generate Go interfaces**: Generate Go interfaces and type-safe bindings
+5. **Create Go module**: Create proper Go module with dependencies
+6. **Test generated bindings**: Test generated bindings with demo code
+
+#### Generation Commands
+
+**C/C++ packages**:
+```bash
+llpkgstore generate
+```
+
+**Python packages**:
+```bash
+llpkgstore generate
+```
+
+This automatically detects package type from `llpkg.cfg` and uses the appropriate generator.
+
+### PR Workflow
+
+#### Standard PR Workflow
+
+1. **Create PR**: Trigger GitHub Action
+2. **PR verification**: Verify PR content
+3. **llpkg generation**: Generate llpkg
+4. **Run tests**: Execute tests
+5. **Review generated llpkg**: Check generation results
+6. **Merge PR**: Merge to main branch
+7. **Post-processing**: Run post-processing GitHub Action on main branch
+
+#### PR Verification Workflow
+
+1. **Ensure uniqueness**: Ensure there is only one `llpkg.cfg` file across all directories. If multiple `llpkg.cfg` instances are detected, the PR will be aborted
+2. **Directory name validation**: Check if directory name is valid, directory name in PR **SHOULD** equal `Package.Name` field in `llpkg.cfg` file
+3. **Commit message validation**: Check if PR commit footer contains [`{MappedVersion}`](#mappedversion-in-pr-commit)
+
+#### Merge PR
+
+Maintainers **SHOULD** squash commits before merging a PR. The squash commit message **MUST** include [`{MappedVersion}`](#mappedversion-in-pr-commit) to enable the Post-processing GitHub Action to parse it correctly.
+
+**`{MappedVersion}` in PR Commit**:
+`{MappedVersion}` **MUST** be included in at least one of the commits in the PR and **MUST** follow this format:
+
+```
+Release-as: {PackageName}/{MappedVersion}
+```
+
+The PR verification process will validate this format and abort the PR if it is invalid.
+
+**Example for C/C++ package**:
+```bash
+git merge
+# Modify the merge commit message
+git commit --amend -m "feat: add cjson" -m "Release-as: cjson/v1.0.0"
+```
+
+**Example for Python package**:
+```bash
+git merge
+# Modify the merge commit message
+git commit --amend -m "feat: add numpy" -m "Release-as: numpy/v1.26.4"
+```
+
+## Configuration Reference
+
+### Basic Structure
 
 ```json
 {
-  "type": "python",
+  "type": "package_type",
   "upstream": {
     "installer": {
-      "name": "pip"
+      "name": "installer_name"
     },
     "package": {
       "name": "package_name",
-      "version": "1.0.0"
+      "version": "version_number"
     }
-  },
-  "llpyg": {
-    "output_dir": "./output",
-    "mod_name": "github.com/your-org/package_name",
-    "mod_depth": 1
   }
 }
 ```
 
-#### C/C++ 包配置
+### Package Type Specific Configuration
+
+#### C/C++ Package Configuration
 
 ```json
 {
@@ -336,16 +492,14 @@ llpkgstore 提供以下主要命令：
       "name": "conan"
     },
     "package": {
-      "name": "mylib",
-      "version": "1.0.0"
+      "name": "cjson",
+      "version": "1.7.18"
     }
-  },
-  "name": "mylib",
-  "version": "1.0.0"
+  }
 }
 ```
 
-#### Python 包配置
+#### Python Package Configuration
 
 ```json
 {
@@ -355,555 +509,339 @@ llpkgstore 提供以下主要命令：
       "name": "pip"
     },
     "package": {
-      "name": "requests",
-      "version": "2.31.0"
+      "name": "numpy",
+      "version": "1.26.4"
     }
   },
   "llpyg": {
     "output_dir": "./test",
-    "mod_name": "github.com/PengPengPeng717/llpkg/requests",
+    "mod_name": "github.com/PengPengPeng717/llpkg/numpy",
     "mod_depth": 1
   }
 }
 ```
 
-### Python 包支持详解
+### Field Description
 
-#### 核心特性
+**Common Fields**
 
-- ✅ **完整 Python 包支持**: 为任何 Python 包生成 Go 绑定
-- ✅ **类型安全**: 在生成的 Go 代码中保持类型信息
-- ✅ **模块深度控制**: 可配置的嵌套模块提取深度
-- ✅ **自定义模块名**: 支持自定义 Go 模块名
-- ✅ **自动测试**: 生成演示代码进行验证
-- ✅ **统一版本管理**: 与 C/C++ 包一致的版本映射
-- ✅ **智能版本提取**: 从提交消息自动提取版本信息
-- ✅ **双重版本记录**: 本地和集中式版本记录文件
-- ✅ **自动 Git 标签**: 基于版本自动创建和推送 Git 标签
-- ✅ **CI/CD 集成**: 完整的 GitHub Actions 支持
+| Field | Type | Default Value | Optional | Description |
+|-------|------|---------------|----------|-------------|
+| type | `string` | "cpp" | ✅ | Package type: "cpp" or "python" |
+| upstream.installer.name | `string` | "conan" | ✅ | Upstream binary provider |
+| upstream.installer.config | `map[string]string` | {} | ✅ | Installer configuration |
+| upstream.package.name | `string` | - | ❌ | Package name in platform |
+| upstream.package.version | `string` | - | ❌ | Original package version |
 
-#### Python 包生成流程
+**Python-specific Fields (llpyg section)**
 
-1. **包安装**: 使用 pip 安装指定的 Python 包
-2. **绑定生成**: 生成 Go 接口和类型安全的绑定
-3. **模块配置**: 配置输出目录、模块名和提取深度
-4. **Go 模块创建**: 创建带有依赖关系的正确 Go 模块
-5. **测试验证**: 使用演示代码测试生成的绑定
+| Field | Type | Default Value | Optional | Description |
+|-------|------|---------------|----------|-------------|
+| llpyg.output_dir | `string` | "./test" | ✅ | Output directory for generated files |
+| llpyg.mod_name | `string` | package name | ✅ | Go module name |
+| llpyg.mod_depth | `int` | 1 | ✅ | Maximum module extraction depth (0-10) |
 
-#### llpyg 配置选项
+## Development Guide
 
-| 字段 | 类型 | 默认值 | 可选 | 描述 |
-|------|------|--------|------|------|
-| `llpyg.output_dir` | `string` | `"./test"` | ✅ | 生成文件的输出目录 |
-| `llpyg.mod_name` | `string` | 包名 | ✅ | Go 模块名 |
-| `llpyg.mod_depth` | `int` | `1` | ✅ | 最大模块提取深度 (0-10) |
+### Development Environment Setup
 
-#### Python 包测试
-
-Python 包在 `_demo` 目录中包含演示代码，用于验证：
-- 包导入和编译
-- 基本功能测试
-- 类型安全验证
-- 与 Go 生态系统的集成
-
-### 3. 生成 Go 绑定
-
-```bash
-# 安装上游包
-llpkgstore install
-
-# 生成 Go 绑定
-llpkgstore generate
-
-# 运行测试
-llpkgstore test
-```
-
-## 📖 详细使用指南
-
-### 命令概览
-
-| 命令 | 描述 | 示例 |
-|------|------|------|
-| `install` | 安装上游包 | `llpkgstore install` |
-| `generate` | 生成 Go 绑定 | `llpkgstore generate` |
-| `test` | 运行测试 | `llpkgstore test` |
-| `postprocessing` | 后处理 | `llpkgstore postprocessing` |
-| `release` | 创建发布 | `llpkgstore release` |
-| `verification` | 验证包 | `llpkgstore verification` |
-
-### 配置文件详解
-
-#### 基本结构
-
-```json
-{
-  "type": "包类型",
-  "upstream": {
-    "installer": {
-      "name": "安装器名称"
-    },
-    "package": {
-      "name": "包名",
-      "version": "版本号"
-    }
-  }
-}
-```
-
-#### 包类型特定配置
-
-**Python 包**:
-```json
-{
-  "type": "python",
-  "upstream": {
-    "installer": {
-      "name": "pip"
-    },
-    "package": {
-      "name": "包名",
-      "version": "版本号"
-    }
-  },
-  "llpyg": {
-    "output_dir": "./output",
-    "mod_name": "github.com/user/repo",
-    "mod_depth": 1
-  }
-}
-```
-
-## 🔄 版本管理
-
-### 统一版本管理机制
-
-llpkgstore v2.0+ 实现了完全统一的版本管理机制，C/C++ 和 Python 包现在使用相同的版本处理逻辑和接口。
-
-#### 统一架构
-
-- **共享接口**: 所有包类型都使用 `DefaultClient` 接口
-- **统一版本提取**: 使用相同的版本提取逻辑和格式支持
-- **一致的后处理**: 相同的 GitHub Release 创建和 Git 标签管理
-- **兼容的版本记录**: 统一的版本记录格式和更新机制
-
-#### 版本提取流程
-
-1. **提交消息解析**: 从最新的提交消息中提取版本信息
-2. **格式支持**: 支持多种版本格式
-   - `Release-as: package_name/vX.X.X`
-
-3. **Git 标签回退**: 如果提交消息中未找到版本，自动从 Git 标签获取
-4. **统一验证**: 使用相同的版本格式验证和冲突检测
-
-#### 版本记录机制
-
-**双重版本记录**:
-- **本地记录**: 包目录下的 `llpkgstore.json`
-- **集中记录**: `llpkg/public/llpkgstore.json`
-
-**版本映射格式**:
-```json
-{
-  "packages": {
-    "package_name": {
-      "versions": [
-        {
-          "python": "0.9.0",
-          "go": ["v8.0.0", "v9.0.0", "v10.0.0"]
-        }
-      ]
-    }
-  }
-}
-```
-
-#### 自动 Git 标签
-
-- **标签创建**: 基于提取的版本信息自动创建 Git 标签
-- **标签推送**: 自动推送到远程仓库
-- **重复检测**: 检查标签是否已存在，避免重复创建
-
-#### 版本验证
-
-- **格式验证**: 确保版本号符合语义化版本规范
-- **冲突检测**: 检测版本冲突和重复
-- **回滚机制**: 支持版本回滚和修复
-
-### 版本映射逻辑详解
-
-#### 核心设计原则
-
-1. **统一版本管理**: Python 和 C++ 包使用相同的版本管理逻辑
-2. **基于 Commit 消息的版本提取**: 从 Git commit 消息中提取版本信息
-3. **集中式版本记录**: 使用 `llpkgstore.json` 文件记录版本映射
-
-#### 版本提取优先级
-
-1. **最新提交消息** (用于 CI 环境)
-2. **Git 标签** (回退机制)
-3. **错误处理** (清晰的错误消息)
-
-#### 版本格式验证
-
-支持的版本格式：
-- `Release-as: {包名}/v{版本号}` (推荐)
-- `Release-as: {包名}/{版本号}`
-- 语义化版本号 (SemVer): `v1.2.3`, `1.2.3`
-
-#### 版本记录更新策略
-
-```go
-// 更新版本记录文件
-func updateLLPkgStoreJSON(packageName, upstreamVersion, mappedVersion string) error {
-    // 1. 读取现有版本记录
-    data, err := os.ReadFile("llpkgstore.json")
-    if err != nil {
-        // 文件不存在时创建新的
-        data = []byte("{}")
-    }
-    
-    // 2. 解析 JSON
-    var versionData LLPkgStoreJSON
-    if len(strings.TrimSpace(string(data))) == 0 {
-        // 空文件时初始化
-        versionData = LLPkgStoreJSON{Packages: make(map[string]PackageInfo)}
-    } else {
-        err = json.Unmarshal(data, &versionData)
-        if err != nil {
-            return err
-        }
-    }
-    
-    // 3. 更新版本信息
-    versionData.Write(packageName, upstreamVersion, mappedVersion)
-    
-    // 4. 写回文件
-    updatedData, err := json.MarshalIndent(versionData, "", "  ")
-    if err != nil {
-        return err
-    }
-    
-    return os.WriteFile("llpkgstore.json", updatedData, 0644)
-}
-```
-
-## 开发指南
-
-### 开发环境设置
-
-#### 1. 克隆仓库
+#### 1. Clone Repository
 
 ```bash
 git clone https://github.com/goplus/llpkgstore.git
 cd llpkgstore
 ```
 
-#### 2. 安装依赖
+#### 2. Install Dependencies
 
 ```bash
-# 安装 Go 依赖
+# Install Go dependencies
 go mod tidy
 
-# 安装开发工具
+# Install development tools
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 go install github.com/goplus/llgo@latest
 ```
 
-#### 3. 构建项目
+#### 3. Build Project
 
 ```bash
-# 构建 llpkgstore
+# Build llpkgstore
 go build -o llpkgstore ./cmd/llpkgstore
 
-# 运行测试
+# Run tests
 go test ./...
 
-# 运行 lint 检查
+# Run lint checks
 golangci-lint run
 ```
 
-### 代码结构
+### Code Structure
 
-#### 核心模块
+#### Core Modules
 
-- **`cmd/llpkgstore/`**: 命令行接口实现
-- **`internal/actions/`**: 核心业务逻辑
-- **`config/`**: 配置管理和验证
-- **`upstream/`**: 上游包管理器集成
-- **`metadata/`**: 元数据管理和缓存
+- **`cmd/llpkgstore/`**: Command-line interface implementation
+- **`internal/actions/`**: Core business logic
+- **`config/`**: Configuration management and validation
+- **`upstream/`**: Upstream package manager integration
+- **`metadata/`**: Metadata management and caching
 
-#### 开发规范
+#### Development Standards
 
-1. **代码风格**: 遵循 Go 官方代码规范
-2. **测试覆盖**: 新功能必须包含单元测试
-3. **文档更新**: 修改功能时同步更新文档
-4. **错误处理**: 提供清晰的错误信息和处理机制
+1. **Code style**: Follow Go official code standards
+2. **Test coverage**: New features must include unit tests
+3. **Documentation updates**: Synchronize documentation updates when modifying features
+4. **Error handling**: Provide clear error information and handling mechanisms
 
-### 贡献流程
+### Contribution Process
 
-#### 1. 创建 Issue
+#### 1. Create Issue
 
-在提交代码之前，请先创建 Issue 描述您要解决的问题或添加的功能。
+Before submitting code, please first create an Issue describing the problem you want to solve or the feature you want to add.
 
-#### 2. Fork 和分支
+#### 2. Fork and Branch
 
 ```bash
-# Fork 仓库后克隆
+# Clone after forking repository
 git clone https://github.com/your-username/llpkgstore.git
 cd llpkgstore
 
-# 创建功能分支
+# Create feature branch
 git checkout -b feature/your-feature-name
 ```
 
-#### 3. 开发和测试
+#### 3. Development and Testing
 
 ```bash
-# 开发功能
-# ... 编写代码 ...
+# Develop features
+# ... write code ...
 
-# 运行测试
+# Run tests
 go test ./...
 
-# 运行 lint
+# Run lint
 golangci-lint run
 
-# 构建验证
+# Build verification
 go build ./cmd/llpkgstore
 ```
 
-#### 4. 提交代码
+#### 4. Submit Code
 
 ```bash
-# 添加更改
+# Add changes
 git add .
 
-# 提交更改
+# Commit changes
 git commit -m "feat: add your feature description"
 
-# 推送分支
+# Push branch
 git push origin feature/your-feature-name
 ```
 
-#### 5. 创建 Pull Request
+#### 5. Create Pull Request
 
-在 GitHub 上创建 Pull Request，包含：
+Create a Pull Request on GitHub, including:
 
-- 清晰的标题和描述
-- 相关的 Issue 链接
-- 测试结果截图（如适用）
-- 文档更新说明
+- Clear title and description
+- Related Issue links
+- Test result screenshots (if applicable)
+- Documentation update description
 
-### 发布流程
+### Release Process
 
-#### 版本管理
+#### Version Management
 
-llpkgstore 使用语义化版本控制：
+llpkgstore uses semantic versioning:
 
-- **主版本号**: 不兼容的 API 修改
-- **次版本号**: 向下兼容的功能性新增
-- **修订号**: 向下兼容的问题修正
+- **Major version**: Incompatible API changes
+- **Minor version**: Backward-compatible feature additions
+- **Patch version**: Backward-compatible bug fixes
 
-#### 发布步骤
+#### Release Steps
 
-1. **更新版本号**: 修改 `go.mod` 中的版本
-2. **更新文档**: 更新 CHANGELOG.md
-3. **创建标签**: `git tag v1.0.0`
-4. **推送标签**: `git push origin v1.0.0`
-5. **创建 Release**: 在 GitHub 上创建 Release
+1. **Update version number**: Modify version in `go.mod`
+2. **Update documentation**: Update CHANGELOG.md
+3. **Create tag**: `git tag v1.0.0`
+4. **Push tag**: `git push origin v1.0.0`
+5. **Create Release**: Create Release on GitHub
 
-### 调试指南
+### Debugging Guide
 
-#### 启用调试模式
+#### Enable Debug Mode
 
 ```bash
-# 设置调试环境变量
+# Set debug environment variable
 export LLPKGSTORE_DEBUG=1
 
-# 运行命令查看详细日志
+# Run command to view detailed logs
 llpkgstore generate --verbose
 ```
 
-#### 常见调试场景
+#### Common Debug Scenarios
 
-1. **包安装失败**: 检查网络连接和包管理器配置
-2. **生成器错误**: 验证配置文件格式和依赖项
-3. **版本冲突**: 检查版本映射和 Git 标签
+1. **Package installation failure**: Check network connection and package manager configuration
+2. **Generator errors**: Verify configuration file format and dependencies
+3. **Version conflicts**: Check version mapping and Git tags
 
-## ❓ 常见问题
+## Technical Implementation Details
 
-### 安装问题
+### Smart Package Detection Mechanism
 
-**Q: 安装后无法找到 llpkgstore 命令**
-A: 确保 `/usr/local/bin` 在您的 PATH 环境变量中，或使用 `go install` 安装到 GOPATH。
+llpkgstore includes smart package detection that prioritizes system-installed packages:
 
-**Q: Python 包安装失败**
-A: 确保已安装 Python 3.8+ 和 pip，并检查网络连接。
+```go
+// isPackageInstalledInSystem checks if the specified package is already installed in the system environment
+func isPackageInstalledInSystem(packageName string) bool {
+    // Method 1: Try to import the package directly
+    if canImportPackage(packageName) {
+        return true
+    }
+    
+    // Method 2: Check pip list output
+    if isPackageInPipList(packageName) {
+        return true
+    }
+    
+    return false
+}
+```
 
-### 配置问题
+### Architecture Improvements
 
-**Q: 配置文件格式错误**
-A: 使用 JSON 验证器检查配置文件格式，确保所有必需字段都存在。
+#### Unified Version Management
 
-**Q: 包类型检测失败**
-A: 确保 `type` 字段设置为 `"python"` 或 `"cpp"`。
+The latest version of llpkgstore includes unified version management for all package types:
 
-### 生成问题
+1. **Common version extraction**: Unified logic for extracting versions from commit messages
+2. **Standardized version validation**: Consistent semver validation across package types
+3. **Unified version mapping**: Common version mapping strategies
+4. **Consistent branch management**: Standardized branch naming and lifecycle
 
-**Q: Go 绑定生成失败**
-A: 检查上游包是否正确安装，确保 llpyg 或 llcppg 工具可用。
+#### Enhanced Error Handling
 
-## 🔧 故障排除
+- **Structured error types**: Consistent error handling across all operations
+- **Detailed logging**: Comprehensive logging for debugging and monitoring
+- **Error recovery**: Mechanisms for handling and recovering from errors
 
-### 调试模式
+#### Improved CI/CD Pipeline
+
+- **Package type detection**: Automatic detection of package types
+- **Conditional processing**: Different processing logic for different package types
+- **Unified workflow**: Consistent workflow across all package types
+- **Enhanced testing**: Comprehensive testing for all package types
+
+### Environment Variable Design
+
+One usage is to store `.pc` files of the C library and allow `llgo build` to find them.
+
+1. `LLGOCACHE` defaults to `{UserCacheDir}/llgo/`
+2. `.pc` files of C libs needed by llpkg will be stored in `{LLGOCACHE}/pkg-config/{module_path}@{module_version}/`
+3. If `UserCacheDir` isn't available, `llgo` will exit with an error
+
+## FAQ
+
+### Installation Issues
+
+**Q: Cannot find llpkgstore command after installation**
+A: Ensure `/usr/local/bin` is in your PATH environment variable, or use `go install` to install to GOPATH.
+
+**Q: Python package installation failed**
+A: Ensure Python 3.8+ and pip are installed, and check network connection.
+
+### Configuration Issues
+
+**Q: Configuration file format error**
+A: Use JSON validator to check configuration file format, ensure all required fields exist.
+
+**Q: Package type detection failed**
+A: Ensure `type` field is set to `"python"` or empty.
+
+### Generation Issues
+
+**Q: Go binding generation failed**
+A: Check if upstream package is correctly installed, ensure llpyg or llcppg tools are available.
+
+## Troubleshooting
+
+### Debug Mode
 
 ```bash
-# 启用详细输出
+# Enable verbose output
 llpkgstore --verbose generate
 
-# 检查配置
+# Check configuration
 llpkgstore config validate
 ```
 
-### 日志文件
+### Log Files
 
-- **安装日志**: `~/.llpkgstore/logs/install.log`
-- **生成日志**: `~/.llpkgstore/logs/generate.log`
-- **错误日志**: `~/.llpkgstore/logs/error.log`
+- **Installation logs**: `~/.llpkgstore/logs/install.log`
+- **Generation logs**: `~/.llpkgstore/logs/generate.log`
+- **Error logs**: `~/.llpkgstore/logs/error.log`
 
-### 常见错误
+### Common Errors
 
-#### 1. 包未找到
+#### 1. Package Not Found
 ```
 Error: package not found
 ```
-**解决方案**: 检查包名和版本号是否正确。
+**Solution**: Check if package name and version number are correct.
 
-#### 2. 配置错误
+#### 2. Configuration Error
 ```
 Error: invalid configuration
 ```
-**解决方案**: 验证配置文件格式和必需字段。
+**Solution**: Verify configuration file format and required fields.
 
-#### 3. 权限问题
+#### 3. Permission Issues
 ```
 Error: permission denied
 ```
-**解决方案**: 检查文件权限和目录访问权限。
+**Solution**: Check file permissions and directory access permissions.
 
-## 🤝 贡献指南
+## Changelog
 
-### 开发环境设置
+### v2.0.0 (Latest)
 
-```bash
-# 克隆仓库
-git clone https://github.com/goplus/llpkgstore.git
-cd llpkgstore
+#### 🎉 Major Updates
+- **Unified version management**: C/C++ and Python packages use consistent version management mechanisms
+- **Smart version extraction**: Automatically extract version information from commit messages
+- **Automatic Git tags**: Automatically create and push Git tags based on version information
 
-# 安装依赖
-go mod download
+#### ✨ New Features
+- **Python package support**: Complete Python package Go binding generation
+- **Unified command interface**: Automatic package type detection and smart routing
+- **Enhanced error handling**: Structured error handling and recovery mechanisms
+- **CI/CD integration**: Optimized GitHub Actions workflows
 
-# 运行测试
-go test ./...
-```
-
-### 代码规范
-
-#### Go 代码规范
-
-- 遵循 [Go 官方代码规范](https://golang.org/doc/effective_go.html)
-- 使用 `gofmt` 格式化代码
-- 添加适当的注释和文档
-- 编写单元测试
-
-#### 提交规范
-
-使用语义化提交信息：
-
-- `feat`: 新功能
-- `fix`: 修复问题
-- `docs`: 文档更新
-- `style`: 代码格式调整
-- `refactor`: 代码重构
-- `test`: 测试相关
-- `chore`: 构建过程或辅助工具的变动
-
-#### 示例
-
-```bash
-git commit -m "feat: add support for Python package type detection"
-git commit -m "fix: resolve version mapping conflict in postprocessing"
-git commit -m "docs: update installation guide for macOS users"
-```
-
-### 测试指南
-
-#### 单元测试
-
-```bash
-# 运行特定包的测试
-go test ./cmd/llpkgstore/internal_python -v
-
-# 运行测试并生成覆盖率报告
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-```
-
-#### 集成测试
-
-```bash
-# 运行集成测试
-go test -tags=integration ./...
-
-# 运行性能分析
-go test -cpuprofile=cpu.prof -memprofile=mem.prof ./...
-```
-
-## 📝 更新日志
-
-### v2.0.0 (最新)
-
-#### 🎉 重大更新
-- **统一版本管理**: C/C++ 和 Python 包使用一致的版本管理机制
-- **智能版本提取**: 从提交消息自动提取版本信息
-- **双重版本记录**: 同时维护本地和集中式版本记录文件
-- **自动 Git 标签**: 基于版本信息自动创建和推送 Git 标签
-
-#### ✨ 新功能
-- **Python 包支持**: 完整的 Python 包 Go 绑定生成
-- **统一命令接口**: 自动包类型检测和智能路由
-- **增强错误处理**: 结构化的错误处理和恢复机制
-- **CI/CD 集成**: 优化的 GitHub Actions 工作流
-
-#### 🔧 改进
-- **架构统一**: 消除了 C++ 和 Python 部分的架构不一致
-- **代码复用**: 减少了重复代码，提高了维护性
-- **用户体验**: 一致的命令接口和错误消息格式
+#### 🔧 Improvements
+- **Architecture unification**: Eliminated architectural inconsistencies between C++ and Python parts
+- **Code reuse**: Reduced duplicate code, improved maintainability
+- **User experience**: Consistent command interface and error message format
 
 ### v1.0.0
 
-#### 🎉 初始版本
-- **C/C++ 包支持**: 完整支持 C/C++ 库的 Go 绑定生成
-- **Conan 集成**: 支持 Conan 包管理器
-- **版本管理**: 复杂的语义化版本映射
-- **CI/CD 集成**: GitHub Actions 工作流支持
+#### 🎉 Initial Version
+- **C/C++ package support**: Complete support for C/C++ library Go binding generation
+- **Conan integration**: Support for Conan package manager
+- **Version management**: Complex semantic version mapping
+- **CI/CD integration**: GitHub Actions workflow support
 
-#### ✨ 核心功能
-- **包管理**: 自动包安装和依赖管理
-- **绑定生成**: 使用 llcppg 生成 Go 绑定
-- **测试框架**: 自动生成演示代码和测试
-- **发布管理**: GitHub Releases 集成
-
----
-
-## 📚 相关资源
-
-- **[架构文档](./ARCHITECTURE.md)**: 详细的系统架构说明
-- **[技术文档](./llpkgstore.md)**: 详细的技术设计和实现细节
-- **[GitHub 仓库](https://github.com/goplus/llpkgstore)**: 源代码和问题跟踪
-- **[LLGo 项目](https://github.com/goplus/llgo)**: LLGo 语言扩展
+#### ✨ Core Features
+- **Package management**: Automatic package installation and dependency management
+- **Binding generation**: Generate Go bindings using llcppg
+- **Test framework**: Automatically generate demo code and tests
+- **Release management**: GitHub Releases integration
 
 ---
 
-**llpkgstore** - 让跨语言开发更简单、更可靠！ 🚀
+## Related Resources
+
+- **[Architecture Documentation](./ARCHITECTURE.md)**: Detailed system architecture description
+- **[GitHub Repository](https://github.com/goplus/llpkgstore)**: Source code and issue tracking
+- **[LLGo Project](https://github.com/goplus/llgo)**: LLGo language extension
+
+---
+
+**llpkgstore** - Making cross-language development simpler and more reliable! 🚀
