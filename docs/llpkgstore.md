@@ -1,102 +1,162 @@
-# llpkgstore design
+# llpkgstore 技术设计文档
 
-This document provides a high-level overview of the design of **llpkgstore**.
+本文档详细描述了 **llpkgstore** 的技术设计、架构实现和核心机制。
 
-We'll firstly introduce the architecture of llpkgstore, and then discuss how users can interact with the service. Finally, we'll explain the package generation workflow, and provide some crucial details of the implementation.
+## 概述
 
-## Abstract
+llpkgstore 是一个专为 [**LLGo**](https://github.com/goplus/llgo) 设计的统一包分发服务，为多语言生态系统提供可信赖且便捷的语言绑定访问。
 
-llpkgstore is designed to be a package distribution service for [**LLGo**](https://github.com/goplus/llgo).
+### 设计目标
 
-An **llpkg** is a Go module that invokes libraries of other languages through [**LLGo**](https://github.com/goplus/llgo)'s ecosystem integration capability. Currently, llpkg generation is handled by multiple tools:
-- [**`llcppg`**](https://github.com/goplus/llcppg) for C/C++ libraries
-- [**`llpyg`**](https://github.com/toaction/llpyg) for Python packages
+llpkgstore 旨在解决以下问题：
 
-You can also use these tools manually to generate llpkgs, but it's not very easy to use. And retrieving llpkgs from a third-party service may cause security issues. Therefore, we've designed llpkgstore to provide a convenient way for users to obtain trustworthy llpkgs.
+1. **跨语言集成复杂性**: 简化不同编程语言之间的互操作
+2. **包管理分散**: 统一管理多种语言的包和绑定
+3. **版本管理混乱**: 提供一致的版本映射和管理机制
+4. **安全性问题**: 通过自动化流程确保包的可信度
 
-llpkgstore is composed of the following components:
+### 核心概念
 
-1. A [GitHub repository](https://github.com/goplus/llpkg) that stores llpkgs, along with GitHub Actions for generating llpkgs automatically.
-2. A [web service](#llpkggoplusorg) that provides version mapping queries and llpkg searches.
-3. A [CLI tool](#getting-an-llpkg) `llgo get` for users to get llpkgs.
+**llpkg** 是一个 Go 模块，通过 [**LLGo**](https://github.com/goplus/llgo) 的生态系统集成能力调用其他语言的库。目前，llpkg 生成由以下工具处理：
 
-## Supported Package Types
+- [**`llcppg`**](https://github.com/goplus/llcppg) - C/C++ 库绑定生成器
+- [**`llpyg`**](https://github.com/toaction/llpyg) - Python 包绑定生成器
 
-### C/C++ Packages
-- **Tool**: `llcppg`
-- **Installer**: Conan package manager
-- **Status**: ✅ Fully supported
-- **Features**: Binary distribution, header files, `.pc` files
+### 系统组件
 
-### Python Packages
-- **Tool**: `llpyg`
-- **Installer**: pip package manager
-- **Status**: ✅ Fully supported (v2.0+)
-- **Features**: Python module bindings, Go interfaces, type safety
+llpkgstore 由以下核心组件构成：
 
-### Future Support
-- **Rust**: Planned for future releases
-- **Node.js**: Under consideration
-- **Java**: Under consideration
+1. **CLI 工具**: 统一的命令行接口，提供包管理功能
+2. **配置系统**: 基于 JSON 的配置文件格式，支持多种包类型
+3. **版本管理**: 智能版本提取、映射和记录机制
+4. **生成器集成**: 与 llcppg 和 llpyg 的无缝集成
+5. **CI/CD 流水线**: 自动化包生成、测试和发布流程
 
-## Directory structure
+## 支持的包类型
 
-### C/C++ Package Structure
-```
-+ {CLibraryName}
-   |
-   +-- {NormalGoModuleFiles}
-   |
-   +-- llpkg.cfg
-   |
-   +-- llcppg.cfg
-   |
-   +-- llcppg.symb.json
-   |
-   +-- llcppg.pub
-   |
-   +-- _demo
-         |
-         +-- {DemoName1}
-         |       |
-         +-- main.go
-         |
-         +-- {DemoName2}
-         |       |
-         +-- main.go
+### C/C++ 包
+
+**工具**: `llcppg`
+**包管理器**: Conan
+**状态**: ✅ 完全支持
+**特性**:
+- 二进制分发支持
+- 头文件自动处理
+- `.pc` 文件生成
+- 跨平台兼容性
+
+**配置示例**:
+```json
+{
+  "type": "cpp",
+  "upstream": {
+    "installer": {
+      "name": "conan"
+    },
+    "package": {
+      "name": "opencv",
+      "version": "4.8.0"
+    }
+  }
+}
 ```
 
-### Python Package Structure
-```
-+ {PythonPackageName}
-   |
-   +-- {GeneratedGoFiles}
-   |
-   +-- llpkg.cfg
-   |
-   +-- llpyg.cfg
-   |
-   +-- go.mod
-   |
-   +-- go.sum
-   |
-   +-- _demo
-         |
-         +-- {DemoName1}
-         |       |
-         +-- main.go
-         |
-         +-- {DemoName2}
-         |       |
-         +-- main.go
+### Python 包
+
+**工具**: `llpyg`
+**包管理器**: pip
+**状态**: ✅ 完全支持 (v2.0+)
+**特性**:
+- Python 模块绑定
+- Go 接口生成
+- 类型安全保证
+- 智能包检测
+
+**配置示例**:
+```json
+{
+  "type": "python",
+  "upstream": {
+    "installer": {
+      "name": "pip"
+    },
+    "package": {
+      "name": "numpy",
+      "version": "1.26.4"
+    }
+  },
+  "llpyg": {
+    "output_dir": "./bindings",
+    "mod_name": "github.com/your-org/numpy",
+    "mod_depth": 1
+  }
+}
 ```
 
-- `llpkg.cfg`: config file of llpkg (required for all package types)
-- `llcppg.cfg`, `llcppg.symb.json`, `llcppg.pub`: config files for C/C++ packages
-- `llpyg.cfg`: config file for Python packages
-- `_demo`: tests to verify if llpkg can be imported, compiled and run as expected
+### 未来支持
 
-To enable `llgo` to correctly identify the llpkg, an llpkg includes at minimum a `llpkg.cfg` file.
+- **Rust**: 计划在未来版本中支持
+- **Node.js**: 正在考虑中
+- **Java**: 正在考虑中
+
+## 目录结构
+
+### C/C++ 包结构
+
+```
+{CLibraryName}/
+├── llpkg.cfg              # 包配置文件（必需）
+├── llcppg.cfg             # llcppg 配置文件
+├── llcppg.symb.json       # 符号定义文件
+├── llcppg.pub             # 公共接口文件
+├── go.mod                 # Go 模块文件
+├── go.sum                 # Go 依赖校验文件
+├── {GeneratedGoFiles}     # 生成的 Go 绑定文件
+└── _demo/                 # 演示和测试代码
+    ├── {DemoName1}/
+    │   └── main.go
+    └── {DemoName2}/
+        └── main.go
+```
+
+### Python 包结构
+
+```
+{PythonPackageName}/
+├── llpkg.cfg              # 包配置文件（必需）
+├── llpyg.cfg              # llpyg 配置文件
+├── go.mod                 # Go 模块文件
+├── go.sum                 # Go 依赖校验文件
+├── {GeneratedGoFiles}     # 生成的 Go 绑定文件
+│   ├── {PackageName}.go
+│   └── {PackageName}_autogen_link.go
+└── _demo/                 # 演示和测试代码
+    ├── {DemoName1}/
+    │   └── main.go
+    └── {DemoName2}/
+        └── main.go
+```
+
+### 文件说明
+
+| 文件 | 描述 | 必需性 |
+|------|------|--------|
+| `llpkg.cfg` | 包配置文件，定义包类型和基本信息 | ✅ 必需 |
+| `llcppg.cfg` | C/C++ 包生成器配置 | C/C++ 包必需 |
+| `llcppg.symb.json` | C/C++ 符号定义文件 | C/C++ 包必需 |
+| `llcppg.pub` | C/C++ 公共接口文件 | C/C++ 包必需 |
+| `llpyg.cfg` | Python 包生成器配置 | Python 包必需 |
+| `go.mod` | Go 模块定义文件 | 自动生成 |
+| `go.sum` | Go 依赖校验文件 | 自动生成 |
+| `_demo/` | 演示和测试代码目录 | 自动生成 |
+
+### 配置文件要求
+
+为了确保 `llgo` 能够正确识别 llpkg，每个包必须包含至少一个 `llpkg.cfg` 文件。该文件定义了包的基本信息，包括：
+
+- 包类型（python 或 cpp）
+- 上游包信息
+- 生成器配置选项
 
 ## llpkg.cfg Structure
 
