@@ -524,7 +524,12 @@ func (d *DefaultClient) checkVersion(ver *versions.Versions, cfg config.LLPkgCon
 		return err
 	}
 
-	// 5. Check version is valid
+	// 5. Check version is valid (skip legacy version check for Python packages)
+	if cfg.Type == "python" {
+		fmt.Printf("Skipping legacy version check for Python package: %s\n", cfg.Upstream.Package.Name)
+		return nil
+	}
+
 	_, isLegacy, err := d.isLegacyVersion()
 	if err != nil {
 		return err
@@ -751,16 +756,22 @@ func (d *DefaultClient) CreateBranchFromLabel(labelName string) error {
 	// create a branch only when this version is legacy.
 	// according to branch maintenance strategy
 
-	// get latest version of the clib
-	ver := versions.Read("llpkgstore.json")
+	// get latest version of the clib (skip for Python packages)
+	// For Python packages, we don't need to check llpkgstore.json
+	cfg, err := config.ParseLLPkgConfig(filepath.Join(clib, "llpkg.cfg"))
+	if err == nil && cfg.Type == "python" {
+		fmt.Printf("Skipping llpkgstore.json check for Python package: %s\n", clib)
+	} else {
+		ver := versions.Read("llpkgstore.json")
 
-	cversions := ver.CVersions(clib)
-	if len(cversions) == 0 {
-		return fmt.Errorf("actions: no clib found")
-	}
+		cversions := ver.CVersions(clib)
+		if len(cversions) == 0 {
+			return fmt.Errorf("actions: no clib found")
+		}
 
-	if !versions.IsSemver(cversions) {
-		return fmt.Errorf("actions: c version dones't follow semver, skip maintaining")
+		if !versions.IsSemver(cversions) {
+			return fmt.Errorf("actions: c version dones't follow semver, skip maintaining")
+		}
 	}
 
 	return d.createBranch(branchName, shaFromTag(version))
