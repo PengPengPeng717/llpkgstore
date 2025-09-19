@@ -343,28 +343,6 @@ The latest version of llpkgstore introduces a unified version management system 
 3. **Git Tag Fallback**: If version not found in commit messages, automatically get from Git tags
 4. **Unified Validation**: Use same version format validation and conflict detection
 
-#### Version Recording Mechanism
-
-**Dual Version Recording**:
-- **Local Recording**: `llpkgstore.json` in package directory
-- **Centralized Recording**: `llpkg/public/llpkgstore.json`
-
-**Version Mapping Format**:
-```json
-{
-  "packages": {
-    "package_name": {
-      "versions": [
-        {
-          "python": "0.9.0",
-          "go": ["v8.0.0", "v9.0.0", "v10.0.0"]
-        }
-      ]
-    }
-  }
-}
-```
-
 #### Automatic Git Tags
 
 - **Tag Creation**: Automatically create Git tags based on extracted version information
